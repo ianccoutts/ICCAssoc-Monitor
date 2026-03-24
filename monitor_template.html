@@ -110,6 +110,26 @@ html,body{min-height:100%;font-family:"DM Sans",system-ui,sans-serif;background:
 .cd-grid{display:grid;grid-template-columns:1fr 90px 90px 80px;border-bottom:1px solid var(--border);cursor:default;transition:background .1s}
 .cd-grid:hover{background:rgba(255,255,255,.025)}.cd-grid.hdr-r{opacity:.4}
 .toast{position:fixed;bottom:20px;right:20px;background:var(--navy2);border:1px solid var(--gold);color:var(--gold);padding:10px 16px;font-size:12px;z-index:999;display:none}
+
+.aging-row{display:grid;grid-template-columns:minmax(160px,1fr) 80px 70px 80px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s}
+.aging-row:hover{background:rgba(255,255,255,.04)}
+.vel-row{display:grid;grid-template-columns:minmax(200px,1fr) 100px 80px 100px 80px 80px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s}
+.vel-row:hover{background:rgba(255,255,255,.04)}
+.heat-row{display:grid;grid-template-columns:minmax(140px,1fr) 70px 100px 80px 100px 120px;border-bottom:1px solid var(--border);transition:background .1s}
+.heat-row:hover{background:rgba(255,255,255,.04)}
+.ref-row{display:grid;grid-template-columns:minmax(160px,1fr) 60px 100px 80px 120px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s}
+.ref-row:hover{background:rgba(255,255,255,.04)}
+.rev-row2{display:grid;grid-template-columns:minmax(180px,1fr) 90px 90px 90px;border-bottom:1px solid var(--border)}
+.heat-bar{height:8px;border-radius:2px;background:var(--gold);display:inline-block;min-width:2px}
+.vel-badge{font-size:10px;padding:2px 7px;border-radius:2px;font-weight:600}
+.vel-ok{background:rgba(34,197,94,.15);color:#86efac}
+.vel-warn{background:rgba(245,158,11,.2);color:#fcd34d}
+.vel-hot{background:rgba(239,68,68,.15);color:#fca5a5}
+.score-item{display:flex;align-items:center;gap:10px;padding:6px 12px;border-bottom:1px solid var(--border);cursor:pointer}
+.score-item:hover{background:rgba(255,255,255,.04)}
+.score-bar-wrap{flex:1;background:rgba(255,255,255,.07);height:4px;border-radius:2px}
+.score-bar{height:100%;border-radius:2px}
+
 @media(max-width:900px){.body-grid{grid-template-columns:1fr}.mstrip{grid-template-columns:repeat(3,1fr)}.analytics-grid,.analytics-grid.three{grid-template-columns:1fr}.drawer-grid{grid-template-columns:1fr}.drow{grid-template-columns:1fr 80px 90px 60px}}
 </style>
 </head>
@@ -120,13 +140,34 @@ html,body{min-height:100%;font-family:"DM Sans",system-ui,sans-serif;background:
     <div class="logo-sub">Deal Flow Monitor</div>
   </div>
   <div class="hdr-r">
-    <div class="snap-badge">Snapshot &middot; %%SNAPSHOT_DATE%%</div>
+    <div class="snap-badge" id="snap-badge">Snapshot &middot; %%SNAPSHOT_DATE%%</div>
     <div class="ts" id="ts"></div>
+    <div id="tok-wrap" style="display:flex;align-items:center;gap:8px">
+      <div id="tok-setup" style="display:flex;align-items:center;gap:6px">
+        <input type="password" id="tok-in" placeholder="HubSpot token (pat-na1-...)" 
+          style="background:rgba(255,255,255,.08);border:1px solid var(--border);color:#fff;padding:4px 8px;font-size:11px;font-family:inherit;outline:none;width:240px">
+        <button onclick="saveHSToken()" 
+          style="font-size:11px;padding:4px 12px;border:1px solid var(--gold);color:var(--gold);background:transparent;cursor:pointer;font-family:inherit">
+          Connect
+        </button>
+      </div>
+      <div id="tok-active" style="display:none;align-items:center;gap:8px">
+        <span style="font-size:10px;color:#4CAF50">&#10003; HubSpot live</span>
+        <button onclick="clearHSToken()" 
+          style="font-size:10px;padding:3px 8px;border:1px solid var(--border);color:var(--muted);background:transparent;cursor:pointer;font-family:inherit">
+          Disconnect
+        </button>
+      </div>
+    </div>
   </div>
 </div>
 <div class="nav">
   <div class="nav-tab on" onclick="showPage('pipeline',this)">Pipeline</div>
+  <div class="nav-tab" onclick="showPage('aging',this)">Aging &amp; Alerts</div>
   <div class="nav-tab" onclick="showPage('analytics',this)">Analytics</div>
+  <div class="nav-tab" onclick="showPage('revenue',this)">Revenue</div>
+  <div class="nav-tab" onclick="showPage('lenders',this)">Lenders</div>
+  <div class="nav-tab" onclick="showPage('referrals',this)">Referrals</div>
   <div class="nav-tab" onclick="showPage('closed',this)">Closed &amp; Dead</div>
   <div class="nav-tab" onclick="showPage('fields',this)">Missing Fields</div>
 </div>
@@ -261,6 +302,113 @@ html,body{min-height:100%;font-family:"DM Sans",system-ui,sans-serif;background:
   </div>
 </div>
 
+
+<!-- AGING & ALERTS PAGE -->
+<div class="page" id="page-aging">
+  <div class="mstrip" id="aging-met"></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+    <div class="pnl">
+      <div class="ph"><span class="pt">&#x1F534; Overdue Close Dates</span><span style="font-size:10px;color:var(--muted)" id="overdue-count"></span></div>
+      <div id="overdue-list"></div>
+    </div>
+    <div class="pnl">
+      <div class="ph"><span class="pt">&#x26A0;&#xFE0F; Stalled Deals (30+ days in stage)</span><span style="font-size:10px;color:var(--muted)" id="stalled-count"></span></div>
+      <div id="stalled-list"></div>
+    </div>
+  </div>
+  <div class="pnl">
+    <div class="ph"><span class="pt">Deal Velocity — Days in Current Stage</span></div>
+    <div style="display:grid;grid-template-columns:minmax(200px,1fr) 100px 80px 100px 80px 80px;border-bottom:1px solid var(--border);opacity:.45;pointer-events:none">
+      <div class="dc mu">Deal</div><div class="dc mu">Stage</div><div class="dc mu">Days in Stage</div>
+      <div class="dc mu">Last Touch</div><div class="dc mu">Amount</div><div class="dc mu">Status</div>
+    </div>
+    <div id="velocity-list"></div>
+  </div>
+</div>
+
+<!-- REVENUE PAGE -->
+<div class="page" id="page-revenue">
+  <div class="mstrip" id="rev-met"></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+    <div class="chart-box">
+      <div class="chart-title">Annual Closed Volume ($M) — 2019 to 2026</div>
+      <div class="chart-canvas-wrap"><canvas id="ch-annual-vol"></canvas></div>
+    </div>
+    <div class="chart-box">
+      <div class="chart-title">Annual Est. Fees Closed ($K)</div>
+      <div class="chart-canvas-wrap"><canvas id="ch-annual-fee"></canvas></div>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+    <div class="chart-box">
+      <div class="chart-title">Forward Pipeline — Prob-Wtd Fee by Month</div>
+      <div class="chart-canvas-wrap"><canvas id="ch-fwd-fee"></canvas></div>
+    </div>
+    <div class="chart-box">
+      <div class="chart-title">Fee Scenario Calculator</div>
+      <div style="padding:16px 0">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+          <span style="font-size:11px;color:var(--muted);width:80px">Fee Rate:</span>
+          <input type="range" id="fee-slider" min="50" max="200" value="100" step="5" style="flex:1" oninput="updateFeeCalc()">
+          <span style="font-size:14px;font-weight:500;color:var(--gold);width:50px" id="fee-pct">1.00%</span>
+        </div>
+        <div id="fee-calc-results" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
+      </div>
+    </div>
+  </div>
+  <div class="pnl">
+    <div class="ph"><span class="pt">Closed Deals — Revenue History (44 deals)</span></div>
+    <div id="closed-rev-list"></div>
+  </div>
+</div>
+
+<!-- LENDERS PAGE -->
+<div class="page" id="page-lenders">
+  <div class="mstrip" id="lender-met"></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+    <div class="chart-box">
+      <div class="chart-title">Active Volume by Lender ($M)</div>
+      <div class="chart-canvas-wrap"><canvas id="ch-lend-vol"></canvas></div>
+    </div>
+    <div class="chart-box">
+      <div class="chart-title">Deal Count by Lender</div>
+      <div class="chart-canvas-wrap"><canvas id="ch-lend-cnt"></canvas></div>
+    </div>
+  </div>
+  <div class="pnl">
+    <div class="ph"><span class="pt">Lender Relationship Heat Map</span></div>
+    <div style="display:grid;grid-template-columns:minmax(140px,1fr) 70px 100px 80px 100px 120px;border-bottom:1px solid var(--border);opacity:.45;pointer-events:none">
+      <div class="dc mu">Lender</div><div class="dc mu">Deals</div><div class="dc mu">Volume</div>
+      <div class="dc mu">Avg Size</div><div class="dc mu">Stages</div><div class="dc mu">Activity</div>
+    </div>
+    <div id="lender-heat"></div>
+  </div>
+</div>
+
+<!-- REFERRALS PAGE -->
+<div class="page" id="page-referrals">
+  <div class="mstrip" id="ref-met"></div>
+  <div class="pnl" style="margin-bottom:16px">
+    <div class="ph"><span class="pt">Referral Sources — Inferred from Deal Descriptions &amp; Names</span>
+      <span style="font-size:10px;color:var(--muted)">Based on current active pipeline</span></div>
+    <div style="display:grid;grid-template-columns:minmax(160px,1fr) 60px 100px 80px 120px;border-bottom:1px solid var(--border);opacity:.45;pointer-events:none">
+      <div class="dc mu">Referral / Borrower</div><div class="dc mu">Deals</div>
+      <div class="dc mu">Volume</div><div class="dc mu">Avg Stage</div><div class="dc mu">Top Deal</div>
+    </div>
+    <div id="ref-list"></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div class="chart-box">
+      <div class="chart-title">Pipeline Volume by Borrower / Sponsor</div>
+      <div class="chart-canvas-wrap"><canvas id="ch-borrower"></canvas></div>
+    </div>
+    <div class="chart-box">
+      <div class="chart-title">Deal Velocity Score — Top 10 Needs Attention</div>
+      <div id="velocity-score-list" style="padding:8px 0"></div>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -339,6 +487,10 @@ function showPage(id,el){
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('on'));
   document.getElementById('page-'+id).classList.add('on');el.classList.add('on');
   if(id==='analytics')setTimeout(renderCharts,50);
+  if(id==='aging')setTimeout(renderAging,50);
+  if(id==='revenue')setTimeout(renderRevenuePage,50);
+  if(id==='lenders')setTimeout(renderLenders,50);
+  if(id==='referrals')setTimeout(renderReferrals,50);
   if(id==='closed')renderClosed();
   if(id==='fields')renderFields();
 }
@@ -470,8 +622,12 @@ function buildDrawer(d){
         <div style="grid-column:1/-1"><div class="field-label">${!d.next?'<span class="miss-dot"></span>':''}Next Step</div>
           <textarea class="edit-input" id="fi-next-${d.id}" rows="2" placeholder="Next action...">${ev('next')||''}</textarea></div>
       </div>
-      <button class="save-btn" onclick="saveEdits('${d.id}')">Save Locally</button>
-      <span style="font-size:10px;color:var(--muted);margin-left:10px">then <a href="${hsUrl(d.id)}" target="_blank" style="color:var(--gold)">update in HubSpot \u2197</a></span>
+      <button class="save-btn" id="save-btn-${d.id}" onclick="saveEdits('${d.id}')">
+        ${getHSToken() ? 'Save & Push to HubSpot' : 'Save Locally'}
+      </button>
+      <span style="font-size:10px;color:var(--muted);margin-left:10px">
+        ${getHSToken() ? '<span style="color:#4CAF50">&#10003; Will sync to HubSpot</span>' : '<a href="'+hsUrl(d.id)+'" target="_blank" style="color:var(--gold)">update in HubSpot ↗</a>'}
+      </span>
     </div>
     <div>
       <div style="font-size:10px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Checklist &mdash; ${d.sn}</div>
@@ -500,22 +656,44 @@ function buildDrawer(d){
   </div>`;
 }
 
-function saveEdits(id){
+async function saveEdits(id){
   const g=fid=>document.getElementById(fid)?.value||'';
-  edits[id+'_amt']=parseFloat(g('fi-amt-'+id))||0;
-  edits[id+'_addr']=g('fi-addr-'+id);
-  edits[id+'_lnd']=g('fi-lnd-'+id);
-  edits[id+'_cl']=g('fi-cl-'+id);
-  edits[id+'_desc']=g('fi-desc-'+id);
-  edits[id+'_next']=g('fi-next-'+id);
+  const newAmt=parseFloat(g('fi-amt-'+id))||0;
+  const newAddr=g('fi-addr-'+id);
+  const newLnd=g('fi-lnd-'+id);
+  const newCl=g('fi-cl-'+id);
+  const newDesc=g('fi-desc-'+id);
+  const newNext=g('fi-next-'+id);
+
+  // Save locally
+  edits[id+'_amt']=newAmt;edits[id+'_addr']=newAddr;edits[id+'_lnd']=newLnd;
+  edits[id+'_cl']=newCl;edits[id+'_desc']=newDesc;edits[id+'_next']=newNext;
   const deal=deals.find(d=>d.id===id);
   if(deal){
-    deal.amt=edits[id+'_amt']||deal.amt;deal.addr=edits[id+'_addr']||deal.addr;
-    deal.lnd=edits[id+'_lnd']||deal.lnd;deal.cl=edits[id+'_cl']||deal.cl;
-    deal.desc=edits[id+'_desc']||deal.desc;deal.next=edits[id+'_next']||deal.next;
+    if(newAmt)deal.amt=newAmt;if(newAddr)deal.addr=newAddr;if(newLnd)deal.lnd=newLnd;
+    if(newCl)deal.cl=newCl;if(newDesc)deal.desc=newDesc;if(newNext)deal.next=newNext;
     deal.mf=getMF(deal);deal.cd=deal.cl?new Date(deal.cl):null;deal.fee=(deal.amt||0)*FEE;
   }
-  toast('Saved locally \u2014 click "update in HubSpot" to push to CRM');
+
+  // Push to HubSpot if token available
+  if(getHSToken()){
+    const btn=document.getElementById('save-btn-'+id);
+    if(btn){btn.textContent='Saving...';btn.disabled=true}
+    const props={};
+    if(newAmt)props.amount=String(newAmt);
+    if(newAddr)props.property_address=newAddr;
+    if(newLnd)props.lender_name=newLnd;
+    if(newCl)props.closedate=newCl+'T00:00:00.000Z';
+    if(newDesc)props.description=newDesc;
+    if(newNext)props.hs_next_step=newNext;
+    const ok=await pushToHubSpot(id,props);
+    if(btn){btn.textContent='Save & Push to HubSpot';btn.disabled=false}
+    toast(ok
+      ? '\u2713 Saved locally and synced to HubSpot!'
+      : 'Saved locally — HubSpot sync failed, try again');
+  }else{
+    toast('Saved locally — Connect HubSpot (top right) to sync automatically');
+  }
   renderMet();renderDeals();
 }
 
@@ -654,6 +832,55 @@ function goToDeal(id){
 
 document.getElementById('ts').textContent=new Date().toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});
 renderMet();renderStageBtns();renderDeals();renderFunnel();renderRevenue();renderClosings();renderRC();
+
+// ── HUBSPOT TOKEN MANAGEMENT ──────────────────────────────────────────────────
+function getHSToken(){return localStorage.getItem('icc_hs_tok')||null}
+function saveHSToken(){
+  const k=document.getElementById('tok-in').value.trim();
+  if(!k){toast('Paste your HubSpot token first');return}
+  localStorage.setItem('icc_hs_tok',k);
+  document.getElementById('tok-in').value='';
+  showTokenState(true);
+  toast('HubSpot connected ✓ Saves will now sync to HubSpot');
+}
+function clearHSToken(){
+  localStorage.removeItem('icc_hs_tok');
+  showTokenState(false);
+  toast('HubSpot disconnected');
+}
+function showTokenState(connected){
+  document.getElementById('tok-setup').style.display=connected?'none':'flex';
+  document.getElementById('tok-active').style.display=connected?'flex':'none';
+}
+
+// ── HUBSPOT WRITE ─────────────────────────────────────────────────────────────
+async function pushToHubSpot(dealId, props){
+  const tok=getHSToken();
+  if(!tok)return false;
+  try{
+    const r=await fetch(`https://api.hubapi.com/crm/v3/objects/deals/${dealId}`,{
+      method:'PATCH',
+      headers:{
+        'Authorization':'Bearer '+tok,
+        'Content-Type':'application/json'
+      },
+      body:JSON.stringify({properties:props})
+    });
+    if(!r.ok){
+      const e=await r.json().catch(()=>({}));
+      throw new Error(e.message||'HTTP '+r.status);
+    }
+    return true;
+  }catch(e){
+    console.error('HubSpot write error:',e);
+    toast('HubSpot sync failed: '+e.message+' — changes saved locally only');
+    return false;
+  }
+}
+
+// ── INIT TOKEN STATE ──────────────────────────────────────────────────────────
+if(getHSToken())showTokenState(true);
+
 </script>
 </body>
 </html>
