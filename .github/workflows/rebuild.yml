@@ -1,0 +1,51 @@
+name: Rebuild ICC Monitor
+
+on:
+  schedule:
+    - cron: "0 11 * * 1-5"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Build monitor
+        env:
+          HUBSPOT_TOKEN: ${{ secrets.HUBSPOT_TOKEN }}
+        run: python build_monitor.py
+
+      - name: Commit & push index.html
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git diff --cached --quiet || git commit -m "Auto-update: $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git push
+```
+
+4. Click **Commit changes**
+
+---
+
+## Step 5 — Run it manually the first time
+
+1. Click the **Actions** tab in your repo
+2. You'll see **"Rebuild ICC Monitor"** in the left list — click it
+3. Click the **"Run workflow"** button (right side) → **Run workflow**
+4. A yellow dot appears — click it to watch it run live
+5. Goes green ✅ in about 30 seconds — your `index.html` is now live
+
+**Your permanent URL:**
+```
+https://ianccoutts.github.io/ICCAssoc-Monitor
