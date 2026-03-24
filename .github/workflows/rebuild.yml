@@ -25,27 +25,10 @@ jobs:
           HUBSPOT_TOKEN: ${{ secrets.HUBSPOT_TOKEN }}
         run: python build_monitor.py
 
-      - name: Commit & push index.html
+      - name: Commit and push
         run: |
-          git config user.name  "github-actions[bot]"
+          git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add index.html
           git diff --cached --quiet || git commit -m "Auto-update: $(date -u '+%Y-%m-%d %H:%M UTC')"
           git push
-```
-
-4. Click **Commit changes**
-
----
-
-## Step 5 — Run it manually the first time
-
-1. Click the **Actions** tab in your repo
-2. You'll see **"Rebuild ICC Monitor"** in the left list — click it
-3. Click the **"Run workflow"** button (right side) → **Run workflow**
-4. A yellow dot appears — click it to watch it run live
-5. Goes green ✅ in about 30 seconds — your `index.html` is now live
-
-**Your permanent URL:**
-```
-https://ianccoutts.github.io/ICCAssoc-Monitor
