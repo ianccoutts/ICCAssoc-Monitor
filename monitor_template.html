@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ICC Associates — Deal Flow Monitor</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%;font-family:"DM Sans",system-ui,sans-serif;background:#1B2A4A;color:#fff;font-size:13px}
+:root{--navy:#1B2A4A;--navy2:#243759;--navy3:#1a2540;--gold:#C9A547;--border:rgba(255,255,255,0.1);--muted:rgba(255,255,255,0.5)}
+.hdr{background:#1B2A4A;border-bottom:1px solid var(--border);padding:12px 22px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200}
+.logo-wrap{display:flex;align-items:center;gap:12px}
+.logo-img{height:32px;filter:brightness(0) invert(1);opacity:.9}
+.logo-sub{font-size:10px;color:var(--muted);letter-spacing:1.8px;text-transform:uppercase}
+.hdr-r{display:flex;align-items:center;gap:10px}
+.snap-badge{font-size:10px;color:var(--gold);border:1px solid rgba(201,165,71,.3);padding:3px 9px;letter-spacing:.5px}
+.ts{font-size:10px;color:var(--muted)}
+.nav{display:flex;gap:0;border-bottom:2px solid var(--border);background:#1a2540;padding:0 22px}
+.nav-tab{padding:10px 16px;font-size:11px;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;letter-spacing:.3px;text-transform:uppercase}
+.nav-tab.on{color:var(--gold);border-bottom-color:var(--gold)}.nav-tab:hover{color:#fff}
+.page{display:none;padding:16px 22px}.page.on{display:block}
+.mstrip{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:var(--border);border:1px solid var(--border);margin-bottom:16px}
+.mc{background:#1B2A4A;padding:12px 16px}
+.ml{font-size:9px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px}
+.mv{font-size:19px;font-weight:300;line-height:1}.mv.g{color:var(--gold)}
+.ms{font-size:10px;color:var(--muted);margin-top:2px}
+.pnl{background:var(--navy2);border:1px solid var(--border);margin-bottom:16px}
+.ph{padding:9px 13px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.pt{font-size:10px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:1.1px}
+.stabs{display:flex;border-bottom:1px solid var(--border);overflow-x:auto}
+.stabs::-webkit-scrollbar{height:2px}.stabs::-webkit-scrollbar-thumb{background:var(--border)}
+.stab{padding:7px 11px;font-size:11px;font-weight:500;color:var(--muted);cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;transition:all .15s}
+.stab.on{color:var(--gold);border-bottom-color:var(--gold)}.stab:hover{color:#fff}
+.fbar{display:flex;gap:5px;padding:8px 13px;border-bottom:1px solid var(--border);flex-wrap:wrap;align-items:center}
+.fb{font-size:11px;padding:3px 9px;border:1px solid var(--border);color:var(--muted);cursor:pointer;background:transparent;font-family:inherit;transition:all .15s}
+.fb.on{border-color:var(--gold);color:var(--gold)}.fb:hover{color:#fff;border-color:rgba(255,255,255,.3)}
+.fbar label{font-size:10px;color:var(--muted);margin-left:6px}
+.srch{background:rgba(255,255,255,.07);border:1px solid var(--border);color:#fff;padding:3px 8px;font-size:11px;font-family:inherit;outline:none;width:150px}
+.srch:focus{border-color:var(--gold)}
+.drow{display:grid;grid-template-columns:minmax(200px,1fr) 88px 100px 80px 64px 80px;border-bottom:1px solid var(--border);transition:background .1s;cursor:pointer}
+.drow:hover{background:rgba(255,255,255,.035)}.drow.hdr-r{opacity:.4;pointer-events:none}.drow.sel{background:rgba(201,165,71,.06)}
+.dc{padding:7px 10px;font-size:12px;color:#fff;display:flex;align-items:center}
+.dc.mu{color:var(--muted);font-size:11px}
+.dn{font-size:12px;font-weight:500;line-height:1.3}
+.da{font-size:10px;color:var(--muted);margin-top:1px}.dl{font-size:10px;color:var(--gold);opacity:.7;margin-top:1px}
+.sp{font-size:10px;padding:2px 6px;border-radius:2px;font-weight:500;white-space:nowrap}
+.sp-prospect{background:rgba(100,116,139,.2);color:#94a3b8}
+.sp-prequal{background:rgba(201,165,71,.12);color:var(--gold)}
+.sp-agreement{background:rgba(201,165,71,.22);color:var(--gold)}
+.sp-submission{background:rgba(59,130,246,.2);color:#93c5fd}
+.sp-termsheet{background:rgba(168,85,247,.2);color:#d8b4fe}
+.sp-uw{background:rgba(245,158,11,.2);color:#fcd34d}
+.sp-approved{background:rgba(34,197,94,.2);color:#86efac}
+.sp-ctc{background:rgba(34,197,94,.3);color:#4ade80}
+.sp-closed{background:rgba(34,197,94,.15);color:#6ee7b7}
+.sp-dead{background:rgba(239,68,68,.15);color:#fca5a5}
+.db{font-size:10px;font-weight:500;padding:2px 6px;border-radius:2px}
+.db-f{background:rgba(34,197,94,.15);color:#86efac}
+.db-r{background:rgba(201,165,71,.15);color:var(--gold)}
+.db-s{background:rgba(239,68,68,.15);color:#fca5a5}
+.mf-count{font-size:10px;padding:1px 6px;border-radius:10px;font-weight:600}
+.mf-0{background:rgba(34,197,94,.2);color:#6ee7b7}
+.mf-1,.mf-2{background:rgba(245,158,11,.2);color:#fcd34d}
+.mf-bad{background:rgba(239,68,68,.2);color:#fca5a5}
+.miss-dot{width:7px;height:7px;border-radius:50%;background:#ef4444;display:inline-block;margin-right:3px;vertical-align:middle}
+.ok-dot{width:7px;height:7px;border-radius:50%;background:#22c55e;display:inline-block;margin-right:3px;vertical-align:middle}
+.drawer{display:none;background:#1a2540;border-top:1px solid var(--border);padding:16px 20px}
+.drawer.open{display:block}
+.drawer-grid{display:grid;grid-template-columns:1fr 1fr 260px;gap:16px}
+.field-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px;display:flex;align-items:center;gap:4px}
+.edit-input{width:100%;background:rgba(255,255,255,.08);border:1px solid var(--border);color:#fff;padding:5px 8px;font-size:12px;font-family:inherit;outline:none;resize:vertical}
+.edit-input:focus{border-color:var(--gold)}
+.save-btn{font-size:11px;padding:5px 14px;background:var(--gold);color:#1B2A4A;border:none;cursor:pointer;font-family:inherit;font-weight:600;margin-top:8px}
+.hs-btn{font-size:11px;padding:4px 11px;border:1px solid var(--border);color:var(--muted);background:transparent;cursor:pointer;font-family:inherit;text-decoration:none;display:inline-block}
+.hs-btn:hover{color:#fff}
+.checklist{list-style:none}
+.checklist li{display:flex;align-items:flex-start;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:11px}
+.checklist li:last-child{border-bottom:none}
+.chk{width:14px;height:14px;border:1px solid var(--border);flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;margin-top:1px;transition:all .1s}
+.chk.done{background:var(--gold);border-color:var(--gold)}
+.chk.done::after{content:"\2713";font-size:9px;color:#1B2A4A;font-weight:700}
+.chk-label{flex:1;line-height:1.4}.chk-label.done{text-decoration:line-through;color:var(--muted)}
+.body-grid{display:grid;grid-template-columns:1fr 300px;gap:16px}
+.sides{display:flex;flex-direction:column;gap:16px}
+.fn{padding:12px}
+.fr{display:flex;align-items:center;gap:7px;margin-bottom:7px}
+.fl{font-size:10px;color:var(--muted);width:78px;flex-shrink:0}
+.fbw{flex:1;background:rgba(255,255,255,.07);height:5px;border-radius:1px;overflow:hidden}
+.fbb{height:100%;border-radius:1px;background:var(--gold)}
+.fv{font-size:11px;color:#fff;width:58px;text-align:right;flex-shrink:0}
+.fc{font-size:10px;color:var(--muted);width:20px;text-align:right;flex-shrink:0}
+.rs{padding:12px}
+.rr{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)}
+.rr:last-child{border-bottom:none}
+.rl{font-size:11px;color:var(--muted)}.rv{font-size:13px;font-weight:500}.rv.hl{color:var(--gold)}
+.cw{padding:12px}.cm{margin-bottom:9px}
+.cml{font-size:10px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px}
+.cd2{display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.cd2:last-child{border-bottom:none}
+.cdn{font-size:11px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-right:6px}
+.cda{font-size:11px;color:var(--gold);flex-shrink:0}
+.empty{padding:20px;text-align:center;color:var(--muted);font-size:12px}
+.analytics-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.analytics-grid.three{grid-template-columns:1fr 1fr 1fr}
+.chart-box{background:var(--navy2);border:1px solid var(--border);padding:14px}
+.chart-title{font-size:10px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px}
+.chart-canvas-wrap{position:relative;height:200px}
+.cd-grid{display:grid;grid-template-columns:1fr 90px 90px 80px;border-bottom:1px solid var(--border);cursor:default;transition:background .1s}
+.cd-grid:hover{background:rgba(255,255,255,.025)}.cd-grid.hdr-r{opacity:.4}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--navy2);border:1px solid var(--gold);color:var(--gold);padding:10px 16px;font-size:12px;z-index:999;display:none}
+@media(max-width:900px){.body-grid{grid-template-columns:1fr}.mstrip{grid-template-columns:repeat(3,1fr)}.analytics-grid,.analytics-grid.three{grid-template-columns:1fr}.drawer-grid{grid-template-columns:1fr}.drow{grid-template-columns:1fr 80px 90px 60px}}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <div class="logo-wrap">
+    <img class="logo-img" src="%%LOGO%%" alt="ICC Associates">
+    <div class="logo-sub">Deal Flow Monitor</div>
+  </div>
+  <div class="hdr-r">
+    <div class="snap-badge">Snapshot &middot; %%SNAPSHOT_DATE%%</div>
+    <div class="ts" id="ts"></div>
+  </div>
+</div>
+<div class="nav">
+  <div class="nav-tab on" onclick="showPage('pipeline',this)">Pipeline</div>
+  <div class="nav-tab" onclick="showPage('analytics',this)">Analytics</div>
+  <div class="nav-tab" onclick="showPage('closed',this)">Closed &amp; Dead</div>
+  <div class="nav-tab" onclick="showPage('fields',this)">Missing Fields</div>
+</div>
+
+<!-- PIPELINE -->
+<div class="page on" id="page-pipeline">
+  <div class="mstrip" id="met"></div>
+  <div class="body-grid">
+    <div>
+      <div class="pnl">
+        <div style="padding:10px 13px;border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:16px;align-items:center;background:rgba(0,0,0,.15)">
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-weight:500;white-space:nowrap">Stage</span>
+            <div id="stage-btns" style="display:flex;flex-wrap:wrap;gap:4px"></div>
+          </div>
+          <div style="width:1px;height:20px;background:var(--border)"></div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-weight:500;white-space:nowrap">Type</span>
+            <div id="type-btns" style="display:flex;flex-wrap:wrap;gap:4px">
+              <button class="fb on" onclick="setType('all',this)">All</button>
+              <button class="fb" onclick="setType('refi',this)">Refi</button>
+              <button class="fb" onclick="setType('construction',this)">Construction</button>
+              <button class="fb" onclick="setType('bridge',this)">Bridge</button>
+              <button class="fb" onclick="setType('purchase',this)">Purchase</button>
+            </div>
+          </div>
+          <div style="width:1px;height:20px;background:var(--border)"></div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-weight:500;white-space:nowrap">Search</span>
+            <input class="srch" id="srch" placeholder="name, address, lender..." oninput="renderDeals()" style="width:180px">
+          </div>
+        </div>
+        <div class="drow hdr-r">
+          <div class="dc mu">Deal</div><div class="dc mu">Loan Amt</div>
+          <div class="dc mu">Stage</div><div class="dc mu">Close</div>
+          <div class="dc mu">Activity</div><div class="dc mu">Fields</div>
+        </div>
+        <div id="dl"></div>
+      </div>
+    </div>
+    <div class="sides">
+      <div class="pnl"><div class="ph"><span class="pt">Pipeline Funnel</span></div><div class="fn" id="fn"></div></div>
+      <div class="pnl">
+        <div class="ph"><span class="pt">Revenue Forecast</span></div>
+        <div class="rs" id="rs"></div>
+        <div style="height:120px;position:relative;padding:0 12px 12px"><canvas id="rc"></canvas></div>
+      </div>
+      <div class="pnl"><div class="ph"><span class="pt">Expected Closings</span></div><div class="cw" id="cw"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ANALYTICS -->
+<div class="page" id="page-analytics">
+  <div class="analytics-grid three">
+    <div class="chart-box"><div class="chart-title">Pipeline by Loan Type</div><div class="chart-canvas-wrap"><canvas id="ch-type"></canvas></div></div>
+    <div class="chart-box"><div class="chart-title">Volume by Stage ($M)</div><div class="chart-canvas-wrap"><canvas id="ch-stage"></canvas></div></div>
+    <div class="chart-box"><div class="chart-title">Pipeline by State / Region</div><div class="chart-canvas-wrap"><canvas id="ch-state"></canvas></div></div>
+  </div>
+  <div class="analytics-grid">
+    <div class="chart-box"><div class="chart-title">Deal Size Distribution</div><div class="chart-canvas-wrap"><canvas id="ch-size"></canvas></div></div>
+    <div class="chart-box"><div class="chart-title">Lender Concentration (active deals)</div><div class="chart-canvas-wrap"><canvas id="ch-lender"></canvas></div></div>
+  </div>
+  <div class="analytics-grid">
+    <div class="chart-box"><div class="chart-title">Volume by Owner / Broker</div><div class="chart-canvas-wrap"><canvas id="ch-owner"></canvas></div></div>
+    <div class="chart-box"><div class="chart-title">Monthly Expected Fee Revenue (prob-wtd)</div><div class="chart-canvas-wrap"><canvas id="ch-month"></canvas></div></div>
+  </div>
+</div>
+
+<!-- CLOSED & DEAD -->
+<div class="page" id="page-closed">
+  <div class="mstrip" id="cd-met"></div>
+  <div class="pnl">
+    <div class="ph"><span class="pt">Closed &amp; Dead Deals (sample — 26 of 545+ total)</span><div style="font-size:10px;color:var(--muted)">Click any row to open in HubSpot</div></div>
+    <div class="fbar">
+      <button class="fb on" onclick="setCDF('all',this)">All</button>
+      <button class="fb" onclick="setCDF('closed',this)">Closed Won</button>
+      <button class="fb" onclick="setCDF('dead',this)">Dead</button>
+    </div>
+    <div class="cd-grid hdr-r"><div class="dc mu">Deal</div><div class="dc mu">Amount</div><div class="dc mu">Status</div><div class="dc mu">Close Date</div></div>
+    <div id="cd-list"></div>
+  </div>
+  <div class="pnl">
+    <div class="ph"><span class="pt">Missing Fields Analysis — Historical Deals</span></div>
+    <div style="padding:14px;font-size:12px;color:var(--muted);line-height:1.8">
+      Based on sampled closed/dead deals, these fields were commonly missing, limiting historical analysis:
+      <ul style="margin:10px 0 0 16px;color:#fff">
+        <li><span style="color:#fca5a5">Property Address</span> — missing ~60%; prevents geographic/market analysis</li>
+        <li><span style="color:#fca5a5">Lender Name</span> — missing ~70% of closed deals; blocks lender performance tracking</li>
+        <li><span style="color:#fca5a5">Deal Description</span> — missing ~80%; limits post-mortem analysis</li>
+        <li><span style="color:var(--gold)">Loan Type / Property Type</span> — not a native HubSpot field; inferred from name only</li>
+        <li><span style="color:var(--gold)">Borrower Name</span> — not a native field; buried in description if present at all</li>
+        <li><span style="color:#86efac">Amount</span> — present in most deals &#10003;</li>
+        <li><span style="color:#86efac">Close Date</span> — present in most deals &#10003;</li>
+      </ul>
+      <div style="margin-top:12px;padding:10px;background:rgba(201,165,71,.08);border-left:2px solid var(--gold)">
+        <strong style="color:var(--gold)">Recommendation:</strong> Add custom HubSpot fields for Borrower Name, Property Type, and Lender Name as required fields going forward to enable lender performance, market penetration, and win/loss analysis.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MISSING FIELDS -->
+<div class="page" id="page-fields">
+  <div class="pnl">
+    <div class="ph"><span class="pt">Active + Prospect Deals — Required Field Completion</span></div>
+    <div style="padding:8px 13px;border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:12px;align-items:center">
+      <div style="display:flex;align-items:center;gap:5px">
+        <span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-weight:500">Completeness</span>
+        <div style="display:flex;gap:4px">
+          <button class="fb on" onclick="setFF('all',this)">All Deals</button>
+          <button class="fb" onclick="setFF('missing',this)">Has Missing</button>
+          <button class="fb" onclick="setFF('complete',this)">Complete</button>
+        </div>
+      </div>
+      <div style="width:1px;height:20px;background:var(--border)"></div>
+      <div style="display:flex;align-items:center;gap:5px">
+        <span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-weight:500">Stage</span>
+        <div id="fields-stage-btns" style="display:flex;flex-wrap:wrap;gap:4px"></div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:minmax(200px,1fr) 80px 80px 80px 80px 80px 80px;border-bottom:1px solid var(--border);opacity:.45;pointer-events:none">
+      <div class="dc mu">Deal</div>
+      <div class="dc mu" style="font-size:9px;justify-content:center">Amount</div>
+      <div class="dc mu" style="font-size:9px;justify-content:center">Address</div>
+      <div class="dc mu" style="font-size:9px;justify-content:center">Lender</div>
+      <div class="dc mu" style="font-size:9px;justify-content:center">Close Dt</div>
+      <div class="dc mu" style="font-size:9px;justify-content:center">Desc</div>
+      <div class="dc mu" style="font-size:9px;justify-content:center">Next Step</div>
+    </div>
+    <div id="fields-list"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const PORTAL='6564339';
+const SM={'1064826':'Prospect','1064827':'Pre-Qual','33350473':'Hold','1064828':'Agreement','1064829':'Submission','1240317':'Term Sheet','1064830':'UW','1064831':'Approved','1064832':'CTC','1064833':'Closed','1394113':'Stalled','1148641':'Dead'};
+const SO=['Prospect','Pre-Qual','Agreement','Submission','Term Sheet','UW','Approved','CTC'];
+const SP={'Prospect':0.05,'Pre-Qual':0.15,'Agreement':0.30,'Submission':0.40,'Term Sheet':0.60,'UW':0.75,'Approved':0.85,'CTC':0.92};
+const PIL={'Prospect':'prospect','Pre-Qual':'prequal','Agreement':'agreement','Submission':'submission','Term Sheet':'termsheet','UW':'uw','Approved':'approved','CTC':'ctc','Closed':'closed','Dead':'dead'};
+const OWNERS={'39935203':'Ian Coutts','83707492':'Team / Abril','39710213':'Luis Colimodio','71853129':'Luis C.'};
+const FEE=0.01;
+const STAGE_CL={
+  'Prospect':['Initial sponsor call completed','Loan amount estimated','Property type identified','Referral source logged','Basic deal viability assessed'],
+  'Pre-Qual':['Borrower name confirmed','Property address confirmed','Loan amount confirmed','Loan type identified','Referral source logged'],
+  'Agreement':['Advisory agreement signed','Fee amount agreed','Exclusivity period confirmed','Deal description complete','Lender targets identified'],
+  'Submission':['Full loan package assembled','Sponsor financial package collected','Property financials / rent roll','Lender name entered in CRM','Submission email sent'],
+  'Term Sheet':['Term sheet received','Key terms reviewed with borrower','Competing term sheets compared','Response deadline noted','Next step in CRM'],
+  'UW':['Lender UW confirmed','Appraisal ordered / received','Third-party reports ordered','Borrower providing docs promptly','UW Q&A actively managed'],
+  'Approved':['Commitment letter received','Loan conditions noted','Borrower reviewing commitment','Fee agreement confirmed','Closing timeline set'],
+  'CTC':['Clear to close confirmed','Closing date set','Wire instructions confirmed','Fee collection confirmed','Closing checklist complete'],
+};
+
+const ACTIVE_DATA=%%ACTIVE_DATA%%;
+const CLOSED_DATA=%%CLOSED_DATA%%;
+
+function inferType(n){
+  const l=(n||'').toLowerCase();
+  if(l.includes('construct')||l.includes('build'))return'construction';
+  if(l.includes('bridge'))return'bridge';
+  if(l.includes('refi')||l.includes('refinanc')||l.includes('takeout')||l.includes('acqui'))return'refi';
+  if(l.includes('purchase')||l.includes('acquisition'))return'purchase';
+  return'other';
+}
+function inferState(a){
+  if(!a)return'Unknown';
+  const m=a.match(/,\s*([A-Z]{2})(?:\s+\d|$)/);if(m)return m[1];
+  const l=a.toLowerCase();
+  if(l.includes('fl')||l.includes('florida')||l.includes('miami')||l.includes('doral')||l.includes('hialeah')||l.includes('hallandale')||l.includes('vero beach')||l.includes('fort lauderdale')||l.includes('lake worth')||l.includes('cocoa')||l.includes('davenport')||l.includes('winter haven')||l.includes('coral gables'))return'FL';
+  if(l.includes(', nc')||l.includes('bolivia, n')||l.includes('north carolina'))return'NC';
+  if(l.includes(', nj')||l.includes('logan township')||l.includes('new jersey'))return'NJ';
+  if(l.includes(', pa')||l.includes('pottstown')||l.includes('pennsylvania'))return'PA';
+  if(l.includes(', al')||l.includes('orange beach')||l.includes('alabama'))return'AL';
+  if(l.includes(', ar')||l.includes('palestine')||l.includes('arkansas'))return'AR';
+  if(l.includes('chicago')||l.includes(', il'))return'IL';
+  if(l.includes(', in')||l.includes('elkhart')||l.includes('indiana'))return'IN';
+  return'Other';
+}
+function daysSince(s){return Math.floor((Date.now()-new Date(s))/86400000)}
+function fmtA(n){if(!n||n===0)return'\u2013';if(n>=1e6)return'$'+(n/1e6).toFixed(1)+'M';if(n>=1e3)return'$'+Math.round(n/1e3)+'K';return'$'+n.toLocaleString()}
+function fmtD(s){if(!s)return'\u2013';return new Date(s).toLocaleDateString('en-US',{month:'short',day:'numeric'})}
+function fmtDY(s){if(!s)return'\u2013';return new Date(s).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}
+function hsUrl(id){return`https://app.hubspot.com/contacts/${PORTAL}/record/0-3/${id}`}
+function getMF(d){
+  const m=[];
+  if(!d.amt||d.amt===0)m.push('amount');
+  if(!d.addr||!d.addr.trim())m.push('address');
+  if(!d.lnd||!d.lnd.trim()||d.lnd==='NA')m.push('lender');
+  if(!d.cl)m.push('close date');
+  if(!d.desc||!d.desc.trim())m.push('description');
+  if(!d.next||!d.next.trim())m.push('next step');
+  return m;
+}
+
+const deals=ACTIVE_DATA.map(d=>{
+  const sn=SM[d.stg]||'Prospect';
+  const mf=getMF(d);
+  return{...d,sn,type:inferType(d.name),state:inferState(d.addr),prob:SP[sn]||0.05,ds:daysSince(d.mod),cd:d.cl?new Date(d.cl):null,fee:(d.amt||0)*FEE,mf};
+}).filter(d=>SO.includes(d.sn));
+
+const closedDeals=CLOSED_DATA.map(d=>({...d,sn:SM[d.stg]||'Dead',type:inferType(d.name)}));
+
+let aStg='all',aTyp='all',aFieldStg='all',openId=null,cdf='all',ff='all';
+const edits={},checks={},chartI={};
+
+function showPage(id,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('on'));
+  document.getElementById('page-'+id).classList.add('on');el.classList.add('on');
+  if(id==='analytics')setTimeout(renderCharts,50);
+  if(id==='closed')renderClosed();
+  if(id==='fields')renderFields();
+}
+
+function setStage(s){
+  aStg=s;
+  document.querySelectorAll('#stage-btns .fb').forEach(b=>{
+    const isOn=b.dataset.stage===s;
+    b.classList.toggle('on',isOn);
+  });
+  renderDeals();
+}
+function setType(s,el){
+  aTyp=s;
+  document.querySelectorAll('#type-btns .fb').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  renderDeals();
+}
+function setFieldStage(s){
+  aFieldStg=s;
+  document.querySelectorAll('#fields-stage-btns .fb').forEach(b=>{
+    b.classList.toggle('on',b.dataset.stage===s);
+  });
+  renderFields();
+}
+
+function renderMet(){
+  const prosp=deals.filter(d=>d.sn==='Prospect');
+  const actv=deals.filter(d=>d.sn!=='Prospect');
+  const tv=deals.reduce((s,d)=>s+d.amt,0);
+  const wf=deals.reduce((s,d)=>s+d.fee*d.prob,0);
+  const now=new Date(),q=Math.floor(now.getMonth()/3);
+  const qf=deals.filter(d=>d.cd&&d.cd.getFullYear()===now.getFullYear()&&Math.floor(d.cd.getMonth()/3)===q).reduce((s,d)=>s+d.fee,0);
+  const hc=deals.filter(d=>d.prob>=0.75).length;
+  const wm=deals.filter(d=>d.mf.length>0).length;
+  document.getElementById('met').innerHTML=[
+    {l:'Prospects',v:prosp.length,s:'earliest stage'},
+    {l:'Active Deals',v:actv.length,s:'pre-qual through CTC'},
+    {l:'Pipeline Volume',v:fmtA(tv),s:'total loan request',g:1},
+    {l:'Prob-Wtd Fees',v:fmtA(wf),s:'@1% avg fee',g:1},
+    {l:'High Confidence',v:hc,s:'\u226575% probability'},
+    {l:'Incomplete Records',v:wm,s:'missing fields'},
+  ].map(c=>`<div class="mc"><div class="ml">${c.l}</div><div class="mv${c.g?' g':''}">${c.v}</div><div class="ms">${c.s}</div></div>`).join('');
+}
+
+function renderStageBtns(){
+  const stages=[['all','All'],...SO.map(s=>[s,s])];
+  // Pipeline stage buttons
+  const el=document.getElementById('stage-btns');
+  if(el){
+    el.innerHTML=stages.map(([v,l])=>{
+      const c=v==='all'?deals.length:deals.filter(d=>d.sn===v).length;
+      return`<button class="fb${v==='all'?' on':''}" data-stage="${v}" onclick="setStage('${v}')">${l} <span style="font-weight:400;opacity:.6">${c}</span></button>`;
+    }).join('');
+  }
+  // Fields page stage buttons
+  const el2=document.getElementById('fields-stage-btns');
+  if(el2){
+    el2.innerHTML=stages.map(([v,l])=>{
+      const c=v==='all'?deals.length:deals.filter(d=>d.sn===v).length;
+      return`<button class="fb${v==='all'?' on':''}" data-stage="${v}" onclick="setFieldStage('${v}')">${l} <span style="font-weight:400;opacity:.6">${c}</span></button>`;
+    }).join('');
+  }
+}
+
+function renderDeals(){
+  const q=(document.getElementById('srch').value||'').toLowerCase();
+  let f=[...deals];
+  if(aStg!=='all')f=f.filter(d=>d.sn===aStg);
+  if(aTyp!=='all')f=f.filter(d=>d.type===aTyp);
+  if(q)f=f.filter(d=>(d.name||'').toLowerCase().includes(q)||(d.addr||'').toLowerCase().includes(q));
+  f.sort((a,b)=>{
+    const oi=SO.indexOf(b.sn)-SO.indexOf(a.sn);
+    return oi!==0?oi:b.prob-a.prob||b.amt-a.amt;
+  });
+  const el=document.getElementById('dl');
+  if(!f.length){el.innerHTML='<div class="empty">No deals match</div>';return}
+  el.innerHTML=f.map(d=>{
+    const pill=PIL[d.sn]||'prospect';
+    const dc=d.ds<=3?'f':d.ds<=14?'r':'s';
+    const mc=d.mf.length;
+    const mcCls=mc===0?'mf-0':mc<=2?'mf-1':'mf-bad';
+    const isOpen=openId===d.id;
+    return`<div>
+      <div class="drow${isOpen?' sel':''}" onclick="toggleDrawer('${d.id}')">
+        <div class="dc"><div>
+          <div class="dn">${d.name}</div>
+          ${d.addr?`<div class="da">${d.addr}</div>`:''}
+          ${d.lnd&&d.lnd!=='NA'?`<div class="dl">${d.lnd}</div>`:''}
+        </div></div>
+        <div class="dc" style="font-variant-numeric:tabular-nums;font-size:12px">${fmtA(d.amt)}</div>
+        <div class="dc"><span class="sp sp-${pill}">${d.sn}</span></div>
+        <div class="dc mu">${fmtD(d.cl)}</div>
+        <div class="dc"><span class="db db-${dc}">${d.ds}d</span></div>
+        <div class="dc"><span class="mf-count ${mcCls}">${mc===0?'\u2713':mc+' miss'}</span></div>
+      </div>
+      <div class="drawer${isOpen?' open':''}" id="drw-${d.id}">${isOpen?buildDrawer(d):''}</div>
+    </div>`;
+  }).join('');
+}
+
+function toggleDrawer(id){
+  openId=openId===id?null:id;
+  renderDeals();
+  if(openId){setTimeout(()=>{const e=document.getElementById('drw-'+id);if(e)e.scrollIntoView({behavior:'smooth',block:'nearest'})},50)}
+}
+
+function buildDrawer(d){
+  const ck=checks[d.id]||{};
+  const items=STAGE_CL[d.sn]||[];
+  const ev=k=>edits[d.id+'_'+k]!==undefined?edits[d.id+'_'+k]:d[k];
+  return`<div class="drawer-grid">
+    <div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <a href="${hsUrl(d.id)}" target="_blank" class="hs-btn">Open in HubSpot \u2197</a>
+        <span style="font-size:11px;color:var(--muted)">${OWNERS[d.own]||d.own} &middot; Created ${fmtDY(d.created)}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div><div class="field-label">${!d.amt?'<span class="miss-dot"></span>':''}Loan Amount</div>
+          <input class="edit-input" id="fi-amt-${d.id}" value="${ev('amt')||''}" placeholder="e.g. 3500000"></div>
+        <div><div class="field-label">${!d.cl?'<span class="miss-dot"></span>':''}Target Close</div>
+          <input class="edit-input" id="fi-cl-${d.id}" value="${ev('cl')||''}" placeholder="YYYY-MM-DD"></div>
+        <div style="grid-column:1/-1"><div class="field-label">${!d.addr?'<span class="miss-dot"></span>':''}Property Address</div>
+          <input class="edit-input" id="fi-addr-${d.id}" value="${ev('addr')||''}" placeholder="Full address"></div>
+        <div style="grid-column:1/-1"><div class="field-label">${!d.lnd||d.lnd==='NA'?'<span class="miss-dot"></span>':''}Lender</div>
+          <input class="edit-input" id="fi-lnd-${d.id}" value="${ev('lnd')||''}" placeholder="Lender name(s)"></div>
+        <div style="grid-column:1/-1"><div class="field-label">${!d.desc?'<span class="miss-dot"></span>':''}Description</div>
+          <textarea class="edit-input" id="fi-desc-${d.id}" rows="3" placeholder="Deal description...">${ev('desc')||''}</textarea></div>
+        <div style="grid-column:1/-1"><div class="field-label">${!d.next?'<span class="miss-dot"></span>':''}Next Step</div>
+          <textarea class="edit-input" id="fi-next-${d.id}" rows="2" placeholder="Next action...">${ev('next')||''}</textarea></div>
+      </div>
+      <button class="save-btn" onclick="saveEdits('${d.id}')">Save Locally</button>
+      <span style="font-size:10px;color:var(--muted);margin-left:10px">then <a href="${hsUrl(d.id)}" target="_blank" style="color:var(--gold)">update in HubSpot \u2197</a></span>
+    </div>
+    <div>
+      <div style="font-size:10px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Checklist &mdash; ${d.sn}</div>
+      <ul class="checklist">${items.map((item,i)=>{
+        const k=`${d.id}_${i}`,done=ck[k];
+        return`<li><div class="chk${done?' done':''}" onclick="toggleCheck('${d.id}',${i})"></div><span class="chk-label${done?' done':''}">${item}</span></li>`;
+      }).join('')}</ul>
+      ${d.mf.length?`<div style="margin-top:10px;padding:8px;background:rgba(239,68,68,.08);border-left:2px solid rgba(239,68,68,.5)">
+        <div style="font-size:10px;color:#fca5a5;margin-bottom:3px">Missing fields:</div>
+        ${d.mf.map(f=>`<div style="font-size:11px;color:#fca5a5">\u2022 ${f}</div>`).join('')}
+      </div>`:`<div style="margin-top:10px;padding:8px;background:rgba(34,197,94,.08);border-left:2px solid rgba(34,197,94,.4);font-size:11px;color:#86efac">All key fields complete \u2713</div>`}
+    </div>
+    <div>
+      <div style="font-size:10px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Summary</div>
+      <div style="font-size:11px;line-height:1.9;color:rgba(255,255,255,.8)">
+        <div><span style="color:var(--muted)">Stage:</span> ${d.sn} (${Math.round(d.prob*100)}%)</div>
+        <div><span style="color:var(--muted)">Type:</span> ${d.type}</div>
+        <div><span style="color:var(--muted)">State:</span> ${d.state}</div>
+        <div><span style="color:var(--muted)">Est. Fee:</span> ${fmtA(d.fee)}</div>
+        <div><span style="color:var(--muted)">Prob-Wtd:</span> ${fmtA(d.fee*d.prob)}</div>
+        <div><span style="color:var(--muted)">Last Touch:</span> ${d.ds}d ago</div>
+        <div><span style="color:var(--muted)">Owner:</span> ${OWNERS[d.own]||d.own}</div>
+      </div>
+      ${d.next?`<div style="margin-top:10px"><div style="font-size:10px;color:var(--muted);margin-bottom:3px">NEXT STEP</div><div style="font-size:11px;color:var(--gold);line-height:1.5">${d.next}</div></div>`:''}
+    </div>
+  </div>`;
+}
+
+function saveEdits(id){
+  const g=fid=>document.getElementById(fid)?.value||'';
+  edits[id+'_amt']=parseFloat(g('fi-amt-'+id))||0;
+  edits[id+'_addr']=g('fi-addr-'+id);
+  edits[id+'_lnd']=g('fi-lnd-'+id);
+  edits[id+'_cl']=g('fi-cl-'+id);
+  edits[id+'_desc']=g('fi-desc-'+id);
+  edits[id+'_next']=g('fi-next-'+id);
+  const deal=deals.find(d=>d.id===id);
+  if(deal){
+    deal.amt=edits[id+'_amt']||deal.amt;deal.addr=edits[id+'_addr']||deal.addr;
+    deal.lnd=edits[id+'_lnd']||deal.lnd;deal.cl=edits[id+'_cl']||deal.cl;
+    deal.desc=edits[id+'_desc']||deal.desc;deal.next=edits[id+'_next']||deal.next;
+    deal.mf=getMF(deal);deal.cd=deal.cl?new Date(deal.cl):null;deal.fee=(deal.amt||0)*FEE;
+  }
+  toast('Saved locally \u2014 click "update in HubSpot" to push to CRM');
+  renderMet();renderDeals();
+}
+
+function toggleCheck(dealId,idx){
+  const k=`${dealId}_${idx}`;
+  if(!checks[dealId])checks[dealId]={};
+  checks[dealId][k]=!checks[dealId][k];
+  const el=document.getElementById('drw-'+dealId);
+  if(el&&el.classList.contains('open'))el.innerHTML=buildDrawer(deals.find(d=>d.id===dealId));
+}
+
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';setTimeout(()=>t.style.display='none',3000)}
+
+function renderFunnel(){
+  const stages=['Prospect',...SO.filter(s=>s!=='Prospect')];
+  const vols=stages.map(s=>deals.filter(d=>d.sn===s).reduce((a,d)=>a+d.amt,0));
+  const mx=Math.max(...vols,1);
+  document.getElementById('fn').innerHTML=stages.map((s,i)=>{
+    const cnt=deals.filter(d=>d.sn===s).length;
+    return`<div class="fr"><div class="fl" style="font-size:9px">${s}</div><div class="fbw"><div class="fbb" style="width:${Math.max((vols[i]/mx)*100,2)}%"></div></div><div class="fv">${fmtA(vols[i])}</div><div class="fc">${cnt}</div></div>`;
+  }).join('');
+}
+
+function renderRevenue(){
+  const actv=deals.filter(d=>d.sn!=='Prospect');
+  const wf=actv.reduce((s,d)=>s+d.fee*d.prob,0);
+  const hc=actv.filter(d=>d.prob>=0.75).reduce((s,d)=>s+d.fee,0);
+  const ap=actv.filter(d=>d.sn==='Approved'||d.sn==='CTC').reduce((s,d)=>s+d.fee,0);
+  document.getElementById('rs').innerHTML=[
+    {l:'Expected (prob-weighted)',v:fmtA(wf),h:1},
+    {l:'High-confidence pipeline',v:fmtA(hc)},
+    {l:'Approved / CTC fees',v:fmtA(ap)},
+    {l:'2025 gross (actual)',v:'$760K'},
+    {l:'2025 net (actual)',v:'$599K'},
+  ].map(r=>`<div class="rr"><div class="rl">${r.l}</div><div class="rv${r.h?' hl':''}">${r.v}</div></div>`).join('');
+}
+
+function renderClosings(){
+  const bm={};
+  deals.filter(d=>d.cd&&d.prob>=0.30).forEach(d=>{const k=d.cd.toLocaleDateString('en-US',{year:'numeric',month:'long'});if(!bm[k])bm[k]=[];bm[k].push(d)});
+  document.getElementById('cw').innerHTML=Object.entries(bm).sort(([a],[b])=>new Date(a)-new Date(b)).slice(0,4).map(([mo,ds])=>
+    `<div class="cm"><div class="cml">${mo}</div>${ds.slice(0,5).map(d=>`<div class="cd2"><div class="cdn">${d.name}</div><div class="cda">${fmtA(d.fee)}</div></div>`).join('')}</div>`
+  ).join('');
+}
+
+function renderRC(){
+  const now=new Date(),months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug'],bkts=Array(8).fill(0);
+  deals.filter(d=>d.sn!=='Prospect').forEach(d=>{if(!d.cd)return;const i=(d.cd.getFullYear()-now.getFullYear())*12+(d.cd.getMonth()-now.getMonth())+2;if(i>=0&&i<8)bkts[i]+=d.fee*d.prob});
+  if(chartI.rc)chartI.rc.destroy();
+  chartI.rc=new Chart(document.getElementById('rc'),{type:'bar',data:{labels:months,datasets:[{data:bkts,backgroundColor:bkts.map((_,i)=>i===2?'#C9A547':'rgba(201,165,71,0.28)'),borderRadius:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmtA(c.raw)}}},scales:{x:{ticks:{color:'rgba(255,255,255,0.4)',font:{size:10}},grid:{color:'rgba(255,255,255,0.06)'}},y:{ticks:{color:'rgba(255,255,255,0.4)',font:{size:10},callback:v=>fmtA(v)},grid:{color:'rgba(255,255,255,0.06)'},border:{display:false}}}}});
+}
+
+const CC=['#C9A547','#4A90D9','#68D391','#F6AD55','#B794F4','#FC8181','#63B3ED','#4FD1C5','#F6E05E','#68D391'];
+function mkChart(id,type,labels,data,opts){
+  if(chartI[id])chartI[id].destroy();
+  const el=document.getElementById(id);if(!el)return;
+  const isPie=type==='doughnut'||type==='pie';
+  chartI[id]=new Chart(el,{type,data:{labels,datasets:[{data,backgroundColor:isPie?CC.slice(0,labels.length):CC[0],borderColor:'transparent',borderWidth:0,...(opts&&opts.ds||{})}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:isPie?'right':'bottom',labels:{color:'rgba(255,255,255,0.55)',font:{size:10},boxWidth:10,padding:8}}},scales:!isPie?{x:{ticks:{color:'rgba(255,255,255,0.4)',font:{size:10}},grid:{color:'rgba(255,255,255,0.06)'}},y:{ticks:{color:'rgba(255,255,255,0.4)',font:{size:10},...(opts&&opts.yf?{callback:opts.yf}:{})},grid:{color:'rgba(255,255,255,0.06)'},border:{display:false}}}:{}}});
+}
+
+function renderCharts(){
+  const tm={};deals.forEach(d=>{tm[d.type]=(tm[d.type]||0)+1});
+  const tl=Object.keys(tm).map(k=>k.charAt(0).toUpperCase()+k.slice(1));
+  mkChart('ch-type','doughnut',tl,Object.values(tm));
+  const stages=['Prospect','Pre-Qual','Agreement','Submission','Term Sheet','UW','Approved','CTC'];
+  const sv=stages.map(s=>+(deals.filter(d=>d.sn===s).reduce((a,d)=>a+(d.amt||0),0)/1e6).toFixed(1));
+  mkChart('ch-stage','bar',stages,sv,{ds:{backgroundColor:stages.map((_,i)=>i===0?'rgba(100,116,139,.5)':CC[0])},yf:v=>v+'M'});
+  const stm={};deals.forEach(d=>{const s=d.state||'Unknown';stm[s]=(stm[s]||0)+1});
+  const ss=Object.entries(stm).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  mkChart('ch-state','doughnut',ss.map(([k])=>k),ss.map(([,v])=>v));
+  const bc=['<$1M','$1-3M','$3-10M','$10-25M','$25M+'],bv=[0,0,0,0,0];
+  deals.forEach(d=>{const a=d.amt||0;if(a<1e6)bv[0]++;else if(a<3e6)bv[1]++;else if(a<10e6)bv[2]++;else if(a<25e6)bv[3]++;else bv[4]++});
+  mkChart('ch-size','bar',bc,bv,{ds:{backgroundColor:CC[0]}});
+  const lm={};deals.filter(d=>d.lnd&&d.lnd!=='NA'&&d.lnd.trim()).forEach(d=>{const k=d.lnd.trim();lm[k]=(lm[k]||0)+(d.amt||0)});
+  const ls=Object.entries(lm).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  mkChart('ch-lender','bar',ls.map(([k])=>k.replace(' Loans','').replace(' Bank','').replace(' Capital','')),ls.map(([,v])=>+(v/1e6).toFixed(1)),{ds:{backgroundColor:CC},yf:v=>v+'M'});
+  const om={};deals.forEach(d=>{const k=OWNERS[d.own]||'Other';om[k]=(om[k]||0)+(d.amt||0)});
+  const oe=Object.entries(om).sort((a,b)=>b[1]-a[1]);
+  mkChart('ch-owner','doughnut',oe.map(([k])=>k),oe.map(([,v])=>+(v/1e6).toFixed(1)));
+  const now=new Date(),months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug'],mb=Array(8).fill(0);
+  deals.filter(d=>d.sn!=='Prospect').forEach(d=>{if(!d.cd)return;const i=(d.cd.getFullYear()-now.getFullYear())*12+(d.cd.getMonth()-now.getMonth())+2;if(i>=0&&i<8)mb[i]+=d.fee*d.prob});
+  mkChart('ch-month','bar',months,mb.map(v=>+v.toFixed(0)),{ds:{backgroundColor:mb.map((_,i)=>i===2?'#C9A547':'rgba(201,165,71,0.35)')},yf:v=>fmtA(v)});
+}
+
+function setCDF(f,el){cdf=f;document.querySelectorAll('#page-closed .fb').forEach(b=>b.classList.remove('on'));el.classList.add('on');renderClosed()}
+function renderClosed(){
+  const cw=CLOSED_DATA.filter(d=>d.stg==='1064833'),dw=CLOSED_DATA.filter(d=>d.stg==='1148641');
+  document.getElementById('cd-met').innerHTML=[
+    {l:'Closed Won (sample)',v:cw.length,s:'of 545+ total'},
+    {l:'Dead (sample)',v:dw.length,s:'of 545+ total'},
+    {l:'Closed Volume (sample)',v:fmtA(cw.reduce((s,d)=>s+(d.amt||0),0)),s:'loan value',g:1},
+    {l:'Dead Volume (sample)',v:fmtA(dw.reduce((s,d)=>s+(d.amt||0),0)),s:'loan value lost'},
+    {l:'Total Historical',v:'545+',s:'all stages'},
+    {l:'2025 Gross (actual)',v:'$760K',s:'fees placed',g:1},
+  ].map(c=>`<div class="mc"><div class="ml">${c.l}</div><div class="mv${c.g?' g':''}">${c.v}</div><div class="ms">${c.s}</div></div>`).join('');
+  let f=[...CLOSED_DATA];
+  if(cdf==='closed')f=f.filter(d=>d.stg==='1064833');
+  if(cdf==='dead')f=f.filter(d=>d.stg==='1148641');
+  f.sort((a,b)=>new Date(b.cl||0)-new Date(a.cl||0));
+  document.getElementById('cd-list').innerHTML=f.map(d=>`
+    <div class="cd-grid" target="_blank" style="text-decoration:none" onclick="window.open(hsUrl(d.id))" style="cursor:pointer">
+      <div class="dc"><div class="dn">${d.name}</div></div>
+      <div class="dc">${fmtA(d.amt)}</div>
+      <div class="dc"><span class="sp sp-${d.stg==='1064833'?'closed':'dead'}">${d.stg==='1064833'?'Closed':'Dead'}</span></div>
+      <div class="dc mu">${fmtDY(d.cl)}</div>
+    </a>`).join('');
+}
+
+function setFF(f,el){ff=f;document.querySelectorAll('#page-fields .fb').forEach(b=>b.classList.remove('on'));el.classList.add('on');renderFields()}
+function renderFields(){
+  let f=[...deals];
+  if(ff==='missing')f=f.filter(d=>d.mf.length>0);
+  if(ff==='complete')f=f.filter(d=>d.mf.length===0);
+  if(aFieldStg!=='all')f=f.filter(d=>d.sn===aFieldStg);
+  f.sort((a,b)=>b.mf.length-a.mf.length);
+  const dot=(v,label)=>`<div class="dc" style="justify-content:center" title="${label}: ${v?'Present':'MISSING'}">${v?'<span class="ok-dot"></span>':'<span class="miss-dot"></span>'}</div>`;
+  document.getElementById('fields-list').innerHTML=f.map(d=>`
+    <div style="display:grid;grid-template-columns:minmax(200px,1fr) 80px 80px 80px 80px 80px 80px;border-bottom:1px solid var(--border);cursor:pointer" onclick="goToDeal('${d.id}')">
+      <div class="dc"><div><div class="dn" style="font-size:11px">${d.name}</div><div class="da">${d.sn} &middot; ${fmtA(d.amt)}</div></div></div>
+      ${dot(d.amt&&d.amt>0,'Amount')}
+      ${dot(d.addr&&d.addr.trim(),'Address')}
+      ${dot(d.lnd&&d.lnd.trim()&&d.lnd!=='NA','Lender')}
+      ${dot(d.cl,'Close Date')}
+      ${dot(d.desc&&d.desc.trim(),'Description')}
+      ${dot(d.next&&d.next.trim(),'Next Step')}
+    </div>`).join('');
+}
+
+function goToDeal(id){
+  showPage('pipeline',document.querySelector('.nav-tab'));
+  document.querySelector('.nav-tab').classList.add('on');
+  openId=id;aStg='all';aTyp='all';
+  renderDeals();
+  setTimeout(()=>{const e=document.getElementById('drw-'+id);if(e)e.scrollIntoView({behavior:'smooth',block:'start'})},100);
+}
+
+document.getElementById('ts').textContent=new Date().toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});
+renderMet();renderStageBtns();renderDeals();renderFunnel();renderRevenue();renderClosings();renderRC();
+</script>
+</body>
+</html>
