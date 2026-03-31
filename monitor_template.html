@@ -881,6 +881,330 @@ async function pushToHubSpot(dealId, props){
 // ── INIT TOKEN STATE ──────────────────────────────────────────────────────────
 if(getHSToken())showTokenState(true);
  
+ 
+// ═══════════════════════════════════════════════════════════════════════════════
+// AGING & ALERTS PAGE
+// ═══════════════════════════════════════════════════════════════════════════════
+function renderAging(){
+  const now=new Date();
+  const overdue=deals.filter(d=>d.cd&&d.cd<now&&d.sn!=='Prospect');
+  const stale14=deals.filter(d=>d.ds>=14);
+  const stale30=deals.filter(d=>d.ds>=30);
+  const closing30=deals.filter(d=>d.cd&&d.cd>=now&&(d.cd-now)/86400000<=30);
+ 
+  // Metrics
+  const agEl=document.getElementById('aging-met');
+  if(agEl) agEl.innerHTML=[
+    {l:'Overdue Close Date',   v:overdue.length,       s:'past target — still active'},
+    {l:'Stale 14d+',           v:stale14.length,       s:'no activity 14+ days'},
+    {l:'Critical 30d+',        v:stale30.length,       s:'urgent attention needed'},
+    {l:'Closing in 30 Days',   v:closing30.length,     s:'active deals closing soon'},
+    {l:'Avg Days Since Touch',  v:Math.round(deals.reduce((s,d)=>s+d.ds,0)/Math.max(deals.length,1)), s:'across all active deals'},
+    {l:'On Track',             v:deals.filter(d=>d.ds<14&&(!d.cd||d.cd>=now)).length, s:'active & recently touched'},
+  ].map(c=>`<div class="mc"><div class="ml">${c.l}</div><div class="mv">${c.v}</div><div class="ms">${c.s}</div></div>`).join('');
+ 
+  // Overdue list
+  const ovEl=document.getElementById('overdue-list');
+  if(ovEl) ovEl.innerHTML=overdue.length
+    ? overdue.sort((a,b)=>a.cd-b.cd).map(d=>{
+        const daysOver=Math.floor((now-d.cd)/86400000);
+        return`<div class="aging-row" onclick="goToDeal('${d.id}')">
+          <div class="dc"><div class="dn" style="font-size:11px">${d.name}</div><div class="da">${d.sn}</div></div>
+          <div class="dc mu">${fmtD(d.cl)}</div>
+          <div class="dc"><span class="db db-s">${daysOver}d over</span></div>
+          <div class="dc" style="font-size:11px">${fmtA(d.amt)}</div>
+        </div>`;
+      }).join('')
+    : '<div class="empty">No overdue close dates ✓</div>';
+ 
+  // Stalled list
+  const stEl=document.getElementById('stalled-list');
+  if(stEl) stEl.innerHTML=stale14.length
+    ? stale14.sort((a,b)=>b.ds-a.ds).slice(0,12).map(d=>{
+        const cls=d.ds>30?'db-s':d.ds>14?'db-r':'db-f';
+        return`<div class="aging-row" onclick="goToDeal('${d.id}')">
+          <div class="dc"><div class="dn" style="font-size:11px">${d.name}</div><div class="da">${d.sn}</div></div>
+          <div class="dc" style="font-size:11px">${fmtA(d.amt)}</div>
+          <div class="dc"><span class="db ${cls}">${d.ds}d</span></div>
+          <div class="dc mu">${fmtD(d.cl)}</div>
+        </div>`;
+      }).join('')
+    : '<div class="empty">All deals touched within 14 days ✓</div>';
+ 
+  // Full velocity table
+  const velEl=document.getElementById('velocity-list');
+  if(velEl){
+    const sorted=[...deals].sort((a,b)=>b.ds-a.ds);
+    velEl.innerHTML=sorted.map(d=>{
+      const cls=d.ds>30?'vel-hot':d.ds>14?'vel-warn':'vel-ok';
+      const label=d.ds>30?'Critical':d.ds>14?'Stale':'Active';
+      const isOverdue=d.cd&&d.cd<now;
+      return`<div class="vel-row" onclick="goToDeal('${d.id}')">
+        <div class="dc"><div class="dn" style="font-size:11px">${d.name}${isOverdue?'<span style="color:#ef4444;margin-left:5px;font-size:9px">OVERDUE</span>':''}</div></div>
+        <div class="dc"><span class="sp sp-${PIL[d.sn]||'prequal'}">${d.sn}</span></div>
+        <div class="dc"><span class="db ${cls}">${d.ds}d</span></div>
+        <div class="dc mu">${fmtDY(d.mod)}</div>
+        <div class="dc" style="font-size:11px">${fmtA(d.amt)}</div>
+        <div class="dc"><span class="vel-badge ${cls}">${label}</span></div>
+      </div>`;
+    }).join('');
+  }
+}
+ 
+// ═══════════════════════════════════════════════════════════════════════════════
+// REVENUE PAGE
+// ═══════════════════════════════════════════════════════════════════════════════
+let feeRate=0.01;
+ 
+function updateFeeCalc(){
+  const slider=document.getElementById('fee-slider');
+  if(!slider)return;
+  const v=parseInt(slider.value);
+  feeRate=v/10000;
+  const pctEl=document.getElementById('fee-pct');
+  if(pctEl)pctEl.textContent=(v/100).toFixed(2)+'%';
+  const rows=document.getElementById('fee-calc-results');
+  if(!rows)return;
+  const active_only=deals.filter(d=>d.sn!=='Prospect');
+  const wf=active_only.reduce((s,d)=>s+(d.amt||0)*feeRate*(SP[d.sn]||0.15),0);
+  const hc=deals.filter(d=>d.prob>=0.75).reduce((s,d)=>s+(d.amt||0)*feeRate,0);
+  const total=deals.reduce((s,d)=>s+(d.amt||0)*feeRate,0);
+  const ap=deals.filter(d=>d.sn==='Approved'||d.sn==='CTC').reduce((s,d)=>s+(d.amt||0)*feeRate,0);
+  rows.innerHTML=[
+    {l:'Full pipeline at '+(v/100).toFixed(2)+'%', v:fmtA(total)},
+    {l:'Prob-weighted expected',                    v:fmtA(wf),  h:1},
+    {l:'High confidence (≥75%)',                    v:fmtA(hc)},
+    {l:'Approved / CTC only',                       v:fmtA(ap)},
+  ].map(r=>`<div style="background:rgba(255,255,255,.05);padding:10px;border-radius:2px">
+    <div style="font-size:10px;color:var(--muted);margin-bottom:4px">${r.l}</div>
+    <div style="font-size:18px;font-weight:300;color:${r.h?'var(--gold)':'#fff'}">${r.v}</div>
+  </div>`).join('');
+}
+ 
+function renderRevPageFull(){
+  const CLOSED_WON=CLOSED_DATA.filter(d=>d.stg==='1064833');
+  const years=['2019','2020','2021','2022','2023','2024','2025','2026'];
+  const annualVol=years.map(y=>+(CLOSED_WON.filter(d=>d.cl&&d.cl.startsWith(y)).reduce((s,d)=>s+(d.amt||0),0)/1e6).toFixed(1));
+  const annualFee=years.map(y=>+(CLOSED_WON.filter(d=>d.cl&&d.cl.startsWith(y)).reduce((s,d)=>s+(d.amt||0)*0.01,0)/1000).toFixed(0));
+ 
+  // Metrics strip
+  const revMet=document.getElementById('rev-met');
+  if(revMet) revMet.innerHTML=[
+    {l:'Total Closed Vol (2019+)', v:fmtA(CLOSED_WON.reduce((s,d)=>s+(d.amt||0),0)), g:1},
+    {l:'Est. Total Fees Closed',   v:fmtA(CLOSED_WON.reduce((s,d)=>s+(d.amt||0)*0.01,0)), g:1},
+    {l:'2025 Closed Volume',       v:fmtA(CLOSED_WON.filter(d=>d.cl&&d.cl.startsWith('2025')).reduce((s,d)=>s+(d.amt||0),0))},
+    {l:'2025 Gross Actual',        v:'$760K'},
+    {l:'2026 YTD Closed',          v:fmtA(CLOSED_WON.filter(d=>d.cl&&d.cl.startsWith('2026')).reduce((s,d)=>s+(d.amt||0),0))},
+    {l:'Active Pipeline',          v:fmtA(deals.reduce((s,d)=>s+(d.amt||0),0))},
+  ].map(c=>`<div class="mc"><div class="ml">${c.l}</div><div class="mv${c.g?' g':''}">${c.v}</div></div>`).join('');
+ 
+  function mkC(id,type,labels,data,opts){
+    if(chartI[id])chartI[id].destroy();
+    const el=document.getElementById(id);if(!el)return;
+    const isPie=type==='doughnut'||type==='pie';
+    chartI[id]=new Chart(el,{type,
+      data:{labels,datasets:[{data,
+        backgroundColor:isPie?CC.slice(0,labels.length):(opts&&opts.clrs?opts.clrs:CC[0]),
+        borderColor:'transparent',borderWidth:0,borderRadius:2}]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>opts&&opts.tip?opts.tip(c.raw):c.raw}}},
+        scales:!isPie?{
+          x:{ticks:{color:'rgba(255,255,255,.4)',font:{size:10}},grid:{color:'rgba(255,255,255,.06)'}},
+          y:{ticks:{color:'rgba(255,255,255,.4)',font:{size:10},callback:opts&&opts.yf?opts.yf:undefined},
+             grid:{color:'rgba(255,255,255,.06)'},border:{display:false}}}:{}
+      }
+    });
+  }
+ 
+  mkC('ch-annual-vol','bar',years,annualVol,{
+    clrs:years.map(y=>y==='2026'?'rgba(201,165,71,0.5)':'#C9A547'),
+    yf:v=>v+'M',tip:v=>v+'M'});
+  mkC('ch-annual-fee','bar',years,annualFee,{
+    clrs:years.map(y=>y==='2025'?'#C9A547':'rgba(201,165,71,0.3)'),
+    yf:v=>'$'+v+'K',tip:v=>'$'+v+'K'});
+ 
+  const now2=new Date();
+  const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug'];
+  const mb=Array(8).fill(0);
+  deals.filter(d=>d.sn!=='Prospect').forEach(d=>{
+    if(!d.cd)return;
+    const i=(d.cd.getFullYear()-now2.getFullYear())*12+(d.cd.getMonth()-now2.getMonth())+2;
+    if(i>=0&&i<8)mb[i]+=d.fee*d.prob;
+  });
+  mkC('ch-fwd-fee','bar',months,mb.map(v=>+v.toFixed(0)),{
+    clrs:mb.map((_,i)=>i===2?'#C9A547':'rgba(201,165,71,0.32)'),
+    yf:v=>fmtA(v),tip:v=>fmtA(v)});
+ 
+  updateFeeCalc();
+ 
+  // Closed history table
+  const crl=document.getElementById('closed-rev-list');
+  if(crl) crl.innerHTML=
+    `<div style="display:grid;grid-template-columns:minmax(180px,1fr) 90px 90px 90px;border-bottom:1px solid var(--border);opacity:.45;pointer-events:none">
+      <div class="dc mu">Deal</div><div class="dc mu">Closed</div><div class="dc mu">Volume</div><div class="dc mu">Est. Fee</div>
+    </div>`+
+    CLOSED_WON.sort((a,b)=>new Date(b.cl||0)-new Date(a.cl||0)).map(d=>
+      `<div style="display:grid;grid-template-columns:minmax(180px,1fr) 90px 90px 90px;border-bottom:1px solid var(--border);cursor:pointer"
+        onclick="window.open('https://app.hubspot.com/contacts/6564339/record/0-3/${d.id}','_blank')"
+        onmouseover="this.style.background='rgba(255,255,255,.03)'" onmouseout="this.style.background=''">
+        <div class="dc"><div class="dn" style="font-size:11px">${d.name}</div></div>
+        <div class="dc mu">${fmtDY(d.cl)}</div>
+        <div class="dc" style="font-size:12px">${fmtA(d.amt)}</div>
+        <div class="dc" style="font-size:12px;color:var(--gold)">${fmtA((d.amt||0)*0.01)}</div>
+      </div>`).join('');
+}
+ 
+// ═══════════════════════════════════════════════════════════════════════════════
+// LENDERS PAGE
+// ═══════════════════════════════════════════════════════════════════════════════
+function renderLenders(){
+  const lmap={};
+  deals.filter(d=>d.lnd&&d.lnd.trim()&&d.lnd!=='NA').forEach(d=>{
+    const k=d.lnd.trim().replace(/\n/g,'');
+    if(!lmap[k])lmap[k]={name:k,deals:[],vol:0,stages:new Set(),ds:[]};
+    lmap[k].deals.push(d);
+    lmap[k].vol+=(d.amt||0);
+    lmap[k].stages.add(d.sn);
+    lmap[k].ds.push(d.ds);
+  });
+  const lenders=Object.values(lmap).sort((a,b)=>b.vol-a.vol);
+  const unassigned=deals.filter(d=>!d.lnd||!d.lnd.trim()||d.lnd==='NA').length;
+  const maxVol=lenders[0]?.vol||1;
+ 
+  // Metrics
+  const lmEl=document.getElementById('lender-met');
+  if(lmEl) lmEl.innerHTML=[
+    {l:'Active Lenders',       v:lenders.length,                s:'with deals assigned'},
+    {l:'Largest by Volume',    v:lenders[0]?.name.replace(' Loans','').replace(' Bank','').replace(' Capital','')||'—', s:fmtA(lenders[0]?.vol||0)},
+    {l:'Most Active',          v:lenders.reduce((p,c)=>c.deals.length>p.deals.length?c:p,{deals:[],name:'—'}).name.replace(' Loans','').replace(' Bank','').replace(' Capital','')||'—', s:'by deal count'},
+    {l:'Unassigned Deals',     v:unassigned,                    s:'no lender tagged'},
+    {l:'Total Assigned Vol',   v:fmtA(lenders.reduce((s,l)=>s+l.vol,0)), g:1},
+    {l:'Avg Deals / Lender',   v:(lenders.reduce((s,l)=>s+l.deals.length,0)/Math.max(lenders.length,1)).toFixed(1), s:'concentration'},
+  ].map(c=>`<div class="mc"><div class="ml">${c.l}</div><div class="mv${c.g?' g':''}">${c.v}</div><div class="ms">${c.s||''}</div></div>`).join('');
+ 
+  // Charts
+  function mkL(id,type,labels,data,opts){
+    if(chartI[id])chartI[id].destroy();
+    const el=document.getElementById(id);if(!el)return;
+    chartI[id]=new Chart(el,{type,
+      data:{labels,datasets:[{data,backgroundColor:CC.slice(0,labels.length),borderColor:'transparent',borderWidth:0,borderRadius:2}]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>opts&&opts.tip?opts.tip(c.raw):c.raw}}},
+        scales:{x:{ticks:{color:'rgba(255,255,255,.4)',font:{size:10}},grid:{color:'rgba(255,255,255,.06)'}},
+          y:{ticks:{color:'rgba(255,255,255,.4)',font:{size:10},callback:opts&&opts.yf?opts.yf:undefined},
+             grid:{color:'rgba(255,255,255,.06)'},border:{display:false}}}}
+    });
+  }
+ 
+  const shortNames=lenders.map(l=>l.name.replace(' Loans','').replace(' Bank','').replace(' Capital','').replace(' Mortgage','').substring(0,14));
+  mkL('ch-lend-vol','bar',shortNames,lenders.map(l=>+(l.vol/1e6).toFixed(1)),{yf:v=>v+'M',tip:v=>v+'M'});
+  mkL('ch-lend-cnt','bar',shortNames,lenders.map(l=>l.deals.length),{tip:v=>v+' deals'});
+ 
+  // Heat map table
+  const heatEl=document.getElementById('lender-heat');
+  if(heatEl) heatEl.innerHTML=lenders.length
+    ? lenders.map(l=>{
+        const avgDs=Math.round(l.ds.reduce((s,d)=>s+d,0)/l.ds.length);
+        const cls=avgDs>30?'db-s':avgDs>14?'db-r':'db-f';
+        const pct=Math.round((l.vol/maxVol)*100);
+        return`<div class="heat-row">
+          <div class="dc"><div class="dn" style="font-size:12px">${l.name.replace(/\n/g,'')}</div></div>
+          <div class="dc" style="font-size:12px">${l.deals.length}</div>
+          <div class="dc" style="font-size:12px">${fmtA(l.vol)}</div>
+          <div class="dc" style="font-size:11px">${fmtA(Math.round(l.vol/l.deals.length))}</div>
+          <div class="dc" style="font-size:10px;color:var(--muted)">${[...l.stages].slice(0,2).join(', ')}${l.stages.size>2?'…':''}</div>
+          <div class="dc"><span class="db ${cls}">${avgDs}d avg</span></div>
+        </div>`;
+      }).join('')
+    : '<div class="empty">No deals with lenders assigned yet</div>';
+}
+ 
+// ═══════════════════════════════════════════════════════════════════════════════
+// REFERRALS PAGE
+// ═══════════════════════════════════════════════════════════════════════════════
+function inferBorrower(d){
+  const desc=d.desc||'';
+  const m=desc.match(/[Bb]orrower:?\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/);
+  if(m)return m[1];
+  const n=d.name||'';
+  const nm=n.match(/\(([A-Za-z\s]+)\)$/);
+  if(nm)return nm[1].trim();
+  return null;
+}
+ 
+function renderReferrals(){
+  // Group by inferred borrower
+  const bmap={};
+  deals.forEach(d=>{
+    const b=inferBorrower(d)||'Unknown / Inbound';
+    if(!bmap[b])bmap[b]={name:b,deals:[],vol:0};
+    bmap[b].deals.push(d);
+    bmap[b].vol+=(d.amt||0);
+  });
+  const borrowers=Object.values(bmap).sort((a,b)=>b.vol-a.vol);
+  const identified=borrowers.filter(b=>b.name!=='Unknown / Inbound');
+  const multi=borrowers.filter(b=>b.deals.length>1);
+ 
+  // Metrics
+  const refMet=document.getElementById('ref-met');
+  if(refMet) refMet.innerHTML=[
+    {l:'Identified Borrowers',    v:identified.length,      s:'from descriptions'},
+    {l:'Repeat Clients',          v:multi.length,            s:'2+ active deals'},
+    {l:'Top Borrower Volume',     v:fmtA(borrowers[0]?.vol||0), s:borrowers[0]?.name.substring(0,20)||'—', g:1},
+    {l:'Unidentified',            v:bmap['Unknown / Inbound']?.deals.length||0, s:'add borrower to desc'},
+    {l:'Ryan Powers (New Wave)',   v:deals.filter(d=>(d.lnd||'').toLowerCase().includes('new wave')).length, s:'deals via New Wave'},
+    {l:'Bradesco Deals',          v:deals.filter(d=>(d.lnd||'').toLowerCase().includes('bradesco')).length, s:'active with Bradesco'},
+  ].map(c=>`<div class="mc"><div class="ml">${c.l}</div><div class="mv${c.g?' g':''}">${c.v}</div><div class="ms">${c.s||''}</div></div>`).join('');
+ 
+  // Borrower table
+  const stgScore={'Prospect':1,'Pre-Qual':2,'Agreement':3,'Submission':4,'Term Sheet':5,'UW':6,'Approved':7,'CTC':8};
+  const refEl=document.getElementById('ref-list');
+  if(refEl) refEl.innerHTML=borrowers.map(b=>{
+    const topDeal=b.deals.reduce((p,c)=>(c.amt||0)>(p.amt||0)?c:p,{amt:0,name:'—'});
+    return`<div class="ref-row" onclick="goToDeal('${b.deals[0].id}')">
+      <div class="dc"><div class="dn" style="font-size:12px">${b.name}</div></div>
+      <div class="dc" style="font-size:12px">${b.deals.length}</div>
+      <div class="dc" style="font-size:12px">${fmtA(b.vol)}</div>
+      <div class="dc"><span class="sp sp-${PIL[b.deals[0].sn]||'prequal'}" style="font-size:9px">${b.deals[0].sn}</span></div>
+      <div class="dc" style="font-size:10px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${topDeal.name||'—'}</div>
+    </div>`;
+  }).join('');
+ 
+  // Borrower volume donut
+  const top8=borrowers.slice(0,8);
+  if(chartI['ch-borrower'])chartI['ch-borrower'].destroy();
+  const bEl=document.getElementById('ch-borrower');
+  if(bEl&&top8.length){
+    chartI['ch-borrower']=new Chart(bEl,{type:'doughnut',
+      data:{labels:top8.map(b=>b.name.length>18?b.name.substring(0,18)+'...':b.name),
+            datasets:[{data:top8.map(b=>+(b.vol/1e6).toFixed(1)),backgroundColor:CC.slice(0,8),borderColor:'transparent'}]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{position:'right',labels:{color:'rgba(255,255,255,.55)',font:{size:10},boxWidth:10,padding:8}}}}
+    });
+  }
+ 
+  // Velocity score — top 10 needs attention
+  const scored=deals.map(d=>{
+    let score=0;
+    if(d.ds>60)score+=40;else if(d.ds>30)score+=25;else if(d.ds>14)score+=10;
+    if(d.mf.length>3)score+=30;else if(d.mf.length>1)score+=15;else if(d.mf.length===1)score+=5;
+    if(d.cd&&d.cd<new Date())score+=25;
+    if(!d.next||!d.next.trim())score+=10;
+    if(d.sn==='Prospect')score-=10;
+    return{...d,score};
+  }).sort((a,b)=>b.score-a.score).slice(0,10);
+  const maxScore=scored[0]?.score||1;
+  const vsEl=document.getElementById('velocity-score-list');
+  if(vsEl) vsEl.innerHTML=scored.map(d=>{
+    const pct=Math.round((d.score/maxScore)*100);
+    const col=pct>70?'#ef4444':pct>40?'#f59e0b':'#22c55e';
+    return`<div class="score-item" onclick="goToDeal('${d.id}')">
+      <div style="font-size:11px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.name}</div>
+      <div class="score-bar-wrap"><div class="score-bar" style="width:${pct}%;background:${col}"></div></div>
+      <div style="font-size:11px;color:${col};width:32px;text-align:right;flex-shrink:0">${d.score}</div>
+    </div>`;
+  }).join('');
+}
 </script>
 </body>
 </html>
