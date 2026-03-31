@@ -110,7 +110,7 @@ html,body{min-height:100%;font-family:"DM Sans",system-ui,sans-serif;background:
 .cd-grid{display:grid;grid-template-columns:1fr 90px 90px 80px;border-bottom:1px solid var(--border);cursor:default;transition:background .1s}
 .cd-grid:hover{background:rgba(255,255,255,.025)}.cd-grid.hdr-r{opacity:.4}
 .toast{position:fixed;bottom:20px;right:20px;background:var(--navy2);border:1px solid var(--gold);color:var(--gold);padding:10px 16px;font-size:12px;z-index:999;display:none}
-
+ 
 .aging-row{display:grid;grid-template-columns:minmax(160px,1fr) 80px 70px 80px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s}
 .aging-row:hover{background:rgba(255,255,255,.04)}
 .vel-row{display:grid;grid-template-columns:minmax(200px,1fr) 100px 80px 100px 80px 80px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s}
@@ -129,7 +129,7 @@ html,body{min-height:100%;font-family:"DM Sans",system-ui,sans-serif;background:
 .score-item:hover{background:rgba(255,255,255,.04)}
 .score-bar-wrap{flex:1;background:rgba(255,255,255,.07);height:4px;border-radius:2px}
 .score-bar{height:100%;border-radius:2px}
-
+ 
 @media(max-width:900px){.body-grid{grid-template-columns:1fr}.mstrip{grid-template-columns:repeat(3,1fr)}.analytics-grid,.analytics-grid.three{grid-template-columns:1fr}.drawer-grid{grid-template-columns:1fr}.drow{grid-template-columns:1fr 80px 90px 60px}}
 </style>
 </head>
@@ -171,7 +171,7 @@ html,body{min-height:100%;font-family:"DM Sans",system-ui,sans-serif;background:
   <div class="nav-tab" onclick="showPage('closed',this)">Closed &amp; Dead</div>
   <div class="nav-tab" onclick="showPage('fields',this)">Missing Fields</div>
 </div>
-
+ 
 <!-- PIPELINE -->
 <div class="page on" id="page-pipeline">
   <div class="mstrip" id="met"></div>
@@ -219,7 +219,7 @@ html,body{min-height:100%;font-family:"DM Sans",system-ui,sans-serif;background:
     </div>
   </div>
 </div>
-
+ 
 <!-- ANALYTICS -->
 <div class="page" id="page-analytics">
   <div class="analytics-grid three">
@@ -236,7 +236,7 @@ html,body{min-height:100%;font-family:"DM Sans",system-ui,sans-serif;background:
     <div class="chart-box"><div class="chart-title">Monthly Expected Fee Revenue (prob-wtd)</div><div class="chart-canvas-wrap"><canvas id="ch-month"></canvas></div></div>
   </div>
 </div>
-
+ 
 <!-- CLOSED & DEAD -->
 <div class="page" id="page-closed">
   <div class="mstrip" id="cd-met"></div>
@@ -269,7 +269,7 @@ html,body{min-height:100%;font-family:"DM Sans",system-ui,sans-serif;background:
     </div>
   </div>
 </div>
-
+ 
 <!-- MISSING FIELDS -->
 <div class="page" id="page-fields">
   <div class="pnl">
@@ -301,8 +301,8 @@ html,body{min-height:100%;font-family:"DM Sans",system-ui,sans-serif;background:
     <div id="fields-list"></div>
   </div>
 </div>
-
-
+ 
+ 
 <!-- AGING & ALERTS PAGE -->
 <div class="page" id="page-aging">
   <div class="mstrip" id="aging-met"></div>
@@ -325,7 +325,7 @@ html,body{min-height:100%;font-family:"DM Sans",system-ui,sans-serif;background:
     <div id="velocity-list"></div>
   </div>
 </div>
-
+ 
 <!-- REVENUE PAGE -->
 <div class="page" id="page-revenue">
   <div class="mstrip" id="rev-met"></div>
@@ -361,7 +361,7 @@ html,body{min-height:100%;font-family:"DM Sans",system-ui,sans-serif;background:
     <div id="closed-rev-list"></div>
   </div>
 </div>
-
+ 
 <!-- LENDERS PAGE -->
 <div class="page" id="page-lenders">
   <div class="mstrip" id="lender-met"></div>
@@ -384,7 +384,7 @@ html,body{min-height:100%;font-family:"DM Sans",system-ui,sans-serif;background:
     <div id="lender-heat"></div>
   </div>
 </div>
-
+ 
 <!-- REFERRALS PAGE -->
 <div class="page" id="page-referrals">
   <div class="mstrip" id="ref-met"></div>
@@ -408,9 +408,9 @@ html,body{min-height:100%;font-family:"DM Sans",system-ui,sans-serif;background:
     </div>
   </div>
 </div>
-
+ 
 <div class="toast" id="toast"></div>
-
+ 
 <script>
 const PORTAL='6564339';
 const SM={'1064826':'Prospect','1064827':'Pre-Qual','33350473':'Hold','1064828':'Agreement','1064829':'Submission','1240317':'Term Sheet','1064830':'UW','1064831':'Approved','1064832':'CTC','1064833':'Closed','1394113':'Stalled','1148641':'Dead'};
@@ -429,10 +429,10 @@ const STAGE_CL={
   'Approved':['Commitment letter received','Loan conditions noted','Borrower reviewing commitment','Fee agreement confirmed','Closing timeline set'],
   'CTC':['Clear to close confirmed','Closing date set','Wire instructions confirmed','Fee collection confirmed','Closing checklist complete'],
 };
-
+ 
 const ACTIVE_DATA=%%ACTIVE_DATA%%;
 const CLOSED_DATA=%%CLOSED_DATA%%;
-
+ 
 function inferType(n){
   const l=(n||'').toLowerCase();
   if(l.includes('construct')||l.includes('build'))return'construction';
@@ -470,31 +470,31 @@ function getMF(d){
   if(!d.next||!d.next.trim())m.push('next step');
   return m;
 }
-
+ 
 const deals=ACTIVE_DATA.map(d=>{
   const sn=SM[d.stg]||'Prospect';
   const mf=getMF(d);
   return{...d,sn,type:inferType(d.name),state:inferState(d.addr),prob:SP[sn]||0.05,ds:daysSince(d.mod),cd:d.cl?new Date(d.cl):null,fee:(d.amt||0)*FEE,mf};
 }).filter(d=>SO.includes(d.sn));
-
+ 
 const closedDeals=CLOSED_DATA.map(d=>({...d,sn:SM[d.stg]||'Dead',type:inferType(d.name)}));
-
+ 
 let aStg='all',aTyp='all',aFieldStg='all',openId=null,cdf='all',ff='all';
 const edits={},checks={},chartI={};
-
+ 
 function showPage(id,el){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('on'));
   document.getElementById('page-'+id).classList.add('on');el.classList.add('on');
   if(id==='analytics')setTimeout(renderCharts,50);
   if(id==='aging')setTimeout(renderAging,50);
-  if(id==='revenue')setTimeout(renderRevenuePage,50);
+  if(id==='revenue')setTimeout(renderRevPageFull,100);
   if(id==='lenders')setTimeout(renderLenders,50);
   if(id==='referrals')setTimeout(renderReferrals,50);
   if(id==='closed')renderClosed();
   if(id==='fields')renderFields();
 }
-
+ 
 function setStage(s){
   aStg=s;
   document.querySelectorAll('#stage-btns .fb').forEach(b=>{
@@ -516,7 +516,7 @@ function setFieldStage(s){
   });
   renderFields();
 }
-
+ 
 function renderMet(){
   const prosp=deals.filter(d=>d.sn==='Prospect');
   const actv=deals.filter(d=>d.sn!=='Prospect');
@@ -535,7 +535,7 @@ function renderMet(){
     {l:'Incomplete Records',v:wm,s:'missing fields'},
   ].map(c=>`<div class="mc"><div class="ml">${c.l}</div><div class="mv${c.g?' g':''}">${c.v}</div><div class="ms">${c.s}</div></div>`).join('');
 }
-
+ 
 function renderStageBtns(){
   const stages=[['all','All'],...SO.map(s=>[s,s])];
   // Pipeline stage buttons
@@ -555,7 +555,7 @@ function renderStageBtns(){
     }).join('');
   }
 }
-
+ 
 function renderDeals(){
   const q=(document.getElementById('srch').value||'').toLowerCase();
   let f=[...deals];
@@ -591,13 +591,13 @@ function renderDeals(){
     </div>`;
   }).join('');
 }
-
+ 
 function toggleDrawer(id){
   openId=openId===id?null:id;
   renderDeals();
   if(openId){setTimeout(()=>{const e=document.getElementById('drw-'+id);if(e)e.scrollIntoView({behavior:'smooth',block:'nearest'})},50)}
 }
-
+ 
 function buildDrawer(d){
   const ck=checks[d.id]||{};
   const items=STAGE_CL[d.sn]||[];
@@ -655,7 +655,7 @@ function buildDrawer(d){
     </div>
   </div>`;
 }
-
+ 
 async function saveEdits(id){
   const g=fid=>document.getElementById(fid)?.value||'';
   const newAmt=parseFloat(g('fi-amt-'+id))||0;
@@ -664,7 +664,7 @@ async function saveEdits(id){
   const newCl=g('fi-cl-'+id);
   const newDesc=g('fi-desc-'+id);
   const newNext=g('fi-next-'+id);
-
+ 
   // Save locally
   edits[id+'_amt']=newAmt;edits[id+'_addr']=newAddr;edits[id+'_lnd']=newLnd;
   edits[id+'_cl']=newCl;edits[id+'_desc']=newDesc;edits[id+'_next']=newNext;
@@ -674,7 +674,7 @@ async function saveEdits(id){
     if(newCl)deal.cl=newCl;if(newDesc)deal.desc=newDesc;if(newNext)deal.next=newNext;
     deal.mf=getMF(deal);deal.cd=deal.cl?new Date(deal.cl):null;deal.fee=(deal.amt||0)*FEE;
   }
-
+ 
   // Push to HubSpot if token available
   if(getHSToken()){
     const btn=document.getElementById('save-btn-'+id);
@@ -696,7 +696,7 @@ async function saveEdits(id){
   }
   renderMet();renderDeals();
 }
-
+ 
 function toggleCheck(dealId,idx){
   const k=`${dealId}_${idx}`;
   if(!checks[dealId])checks[dealId]={};
@@ -704,9 +704,9 @@ function toggleCheck(dealId,idx){
   const el=document.getElementById('drw-'+dealId);
   if(el&&el.classList.contains('open'))el.innerHTML=buildDrawer(deals.find(d=>d.id===dealId));
 }
-
+ 
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';setTimeout(()=>t.style.display='none',3000)}
-
+ 
 function renderFunnel(){
   const stages=['Prospect',...SO.filter(s=>s!=='Prospect')];
   const vols=stages.map(s=>deals.filter(d=>d.sn===s).reduce((a,d)=>a+d.amt,0));
@@ -716,7 +716,7 @@ function renderFunnel(){
     return`<div class="fr"><div class="fl" style="font-size:9px">${s}</div><div class="fbw"><div class="fbb" style="width:${Math.max((vols[i]/mx)*100,2)}%"></div></div><div class="fv">${fmtA(vols[i])}</div><div class="fc">${cnt}</div></div>`;
   }).join('');
 }
-
+ 
 function renderRevenue(){
   const actv=deals.filter(d=>d.sn!=='Prospect');
   const wf=actv.reduce((s,d)=>s+d.fee*d.prob,0);
@@ -730,7 +730,7 @@ function renderRevenue(){
     {l:'2025 net (actual)',v:'$599K'},
   ].map(r=>`<div class="rr"><div class="rl">${r.l}</div><div class="rv${r.h?' hl':''}">${r.v}</div></div>`).join('');
 }
-
+ 
 function renderClosings(){
   const bm={};
   deals.filter(d=>d.cd&&d.prob>=0.30).forEach(d=>{const k=d.cd.toLocaleDateString('en-US',{year:'numeric',month:'long'});if(!bm[k])bm[k]=[];bm[k].push(d)});
@@ -738,14 +738,14 @@ function renderClosings(){
     `<div class="cm"><div class="cml">${mo}</div>${ds.slice(0,5).map(d=>`<div class="cd2"><div class="cdn">${d.name}</div><div class="cda">${fmtA(d.fee)}</div></div>`).join('')}</div>`
   ).join('');
 }
-
+ 
 function renderRC(){
   const now=new Date(),months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug'],bkts=Array(8).fill(0);
   deals.filter(d=>d.sn!=='Prospect').forEach(d=>{if(!d.cd)return;const i=(d.cd.getFullYear()-now.getFullYear())*12+(d.cd.getMonth()-now.getMonth())+2;if(i>=0&&i<8)bkts[i]+=d.fee*d.prob});
   if(chartI.rc)chartI.rc.destroy();
   chartI.rc=new Chart(document.getElementById('rc'),{type:'bar',data:{labels:months,datasets:[{data:bkts,backgroundColor:bkts.map((_,i)=>i===2?'#C9A547':'rgba(201,165,71,0.28)'),borderRadius:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmtA(c.raw)}}},scales:{x:{ticks:{color:'rgba(255,255,255,0.4)',font:{size:10}},grid:{color:'rgba(255,255,255,0.06)'}},y:{ticks:{color:'rgba(255,255,255,0.4)',font:{size:10},callback:v=>fmtA(v)},grid:{color:'rgba(255,255,255,0.06)'},border:{display:false}}}}});
 }
-
+ 
 const CC=['#C9A547','#4A90D9','#68D391','#F6AD55','#B794F4','#FC8181','#63B3ED','#4FD1C5','#F6E05E','#68D391'];
 function mkChart(id,type,labels,data,opts){
   if(chartI[id])chartI[id].destroy();
@@ -753,7 +753,7 @@ function mkChart(id,type,labels,data,opts){
   const isPie=type==='doughnut'||type==='pie';
   chartI[id]=new Chart(el,{type,data:{labels,datasets:[{data,backgroundColor:isPie?CC.slice(0,labels.length):CC[0],borderColor:'transparent',borderWidth:0,...(opts&&opts.ds||{})}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:isPie?'right':'bottom',labels:{color:'rgba(255,255,255,0.55)',font:{size:10},boxWidth:10,padding:8}}},scales:!isPie?{x:{ticks:{color:'rgba(255,255,255,0.4)',font:{size:10}},grid:{color:'rgba(255,255,255,0.06)'}},y:{ticks:{color:'rgba(255,255,255,0.4)',font:{size:10},...(opts&&opts.yf?{callback:opts.yf}:{})},grid:{color:'rgba(255,255,255,0.06)'},border:{display:false}}}:{}}});
 }
-
+ 
 function renderCharts(){
   const tm={};deals.forEach(d=>{tm[d.type]=(tm[d.type]||0)+1});
   const tl=Object.keys(tm).map(k=>k.charAt(0).toUpperCase()+k.slice(1));
@@ -777,7 +777,7 @@ function renderCharts(){
   deals.filter(d=>d.sn!=='Prospect').forEach(d=>{if(!d.cd)return;const i=(d.cd.getFullYear()-now.getFullYear())*12+(d.cd.getMonth()-now.getMonth())+2;if(i>=0&&i<8)mb[i]+=d.fee*d.prob});
   mkChart('ch-month','bar',months,mb.map(v=>+v.toFixed(0)),{ds:{backgroundColor:mb.map((_,i)=>i===2?'#C9A547':'rgba(201,165,71,0.35)')},yf:v=>fmtA(v)});
 }
-
+ 
 function setCDF(f,el){cdf=f;document.querySelectorAll('#page-closed .fb').forEach(b=>b.classList.remove('on'));el.classList.add('on');renderClosed()}
 function renderClosed(){
   const cw=CLOSED_DATA.filter(d=>d.stg==='1064833'),dw=CLOSED_DATA.filter(d=>d.stg==='1148641');
@@ -801,7 +801,7 @@ function renderClosed(){
       <div class="dc mu">${fmtDY(d.cl)}</div>
     </a>`).join('');
 }
-
+ 
 function setFF(f,el){ff=f;document.querySelectorAll('#page-fields .fb').forEach(b=>b.classList.remove('on'));el.classList.add('on');renderFields()}
 function renderFields(){
   let f=[...deals];
@@ -821,7 +821,7 @@ function renderFields(){
       ${dot(d.next&&d.next.trim(),'Next Step')}
     </div>`).join('');
 }
-
+ 
 function goToDeal(id){
   showPage('pipeline',document.querySelector('.nav-tab'));
   document.querySelector('.nav-tab').classList.add('on');
@@ -829,10 +829,10 @@ function goToDeal(id){
   renderDeals();
   setTimeout(()=>{const e=document.getElementById('drw-'+id);if(e)e.scrollIntoView({behavior:'smooth',block:'start'})},100);
 }
-
+ 
 document.getElementById('ts').textContent=new Date().toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});
 renderMet();renderStageBtns();renderDeals();renderFunnel();renderRevenue();renderClosings();renderRC();
-
+ 
 // ── HUBSPOT TOKEN MANAGEMENT ──────────────────────────────────────────────────
 function getHSToken(){return localStorage.getItem('icc_hs_tok')||null}
 function saveHSToken(){
@@ -852,7 +852,7 @@ function showTokenState(connected){
   document.getElementById('tok-setup').style.display=connected?'none':'flex';
   document.getElementById('tok-active').style.display=connected?'flex':'none';
 }
-
+ 
 // ── HUBSPOT WRITE ─────────────────────────────────────────────────────────────
 async function pushToHubSpot(dealId, props){
   const tok=getHSToken();
@@ -877,10 +877,10 @@ async function pushToHubSpot(dealId, props){
     return false;
   }
 }
-
+ 
 // ── INIT TOKEN STATE ──────────────────────────────────────────────────────────
 if(getHSToken())showTokenState(true);
-
+ 
 </script>
 </body>
 </html>
